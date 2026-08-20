@@ -1,14 +1,26 @@
 import React, { useState } from 'react';
-import { login } from '../../services/api';
+import { login, OAUTH_URL } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../locales/LanguageContext.jsx';
+import { useTheme } from '../../context/ThemeContext.jsx';
 import { LogIn, Loader2, Moon, Sparkles, Mail, Lock, Chrome, Github, Shield, Zap, Award, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
+import DarkModeToggle from '../DarkModeToggle';
+import LanguageSelector from '../UI/LanguageSelector';
 
 const Login = ({ onSwitch }) => {
   const { loginUser } = useAuth();
+  const { t } = useLanguage();
+  const { darkMode } = useTheme();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => {
+    const p = new URLSearchParams(window.location.search);
+    const e = p.get('error');
+    if (e === 'oauth_unconfigured') return t('auth.oauth.unconfigured', { provider: (p.get('provider') || 'OAuth').replace(/^./, (c) => c.toUpperCase()) });
+    if (e === 'oauth_failed' || e === 'oauth_no_email') return t('auth.oauth.failed');
+    return '';
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,19 +31,29 @@ const Login = ({ onSwitch }) => {
       const response = await login(formData);
       loginUser(response.data.token, response.data.user);
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.response?.data?.message || t('auth.login.failed'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 dark:from-slate-950 dark:via-indigo-950 dark:to-purple-950 transition-colors duration-500 overflow-hidden relative">
-      
+    <div className={`min-h-screen overflow-hidden relative transition-colors duration-500 ${
+      darkMode
+        ? 'bg-[#0b1020]'
+        : 'bg-gradient-to-br from-white via-indigo-50/60 to-white'
+    }`}>
+
+      {/* Top-right controls (navbar is hidden on auth pages) */}
+      <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
+        <LanguageSelector />
+        <DarkModeToggle />
+      </div>
+
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
-          className="absolute w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl top-20 left-1/4"
+          className="absolute w-96 h-96 bg-brand-500/25 rounded-full blur-3xl top-20 left-1/4"
           animate={{ 
             x: [0, 100, -100, 0],
             y: [0, -50, 50, 0],
@@ -40,7 +62,7 @@ const Login = ({ onSwitch }) => {
           transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
         />
         <motion.div
-          className="absolute w-80 h-80 bg-purple-500/20 rounded-full blur-3xl bottom-20 right-1/4"
+          className="absolute w-80 h-80 bg-violet-600/20 rounded-full blur-3xl bottom-20 right-1/4"
           animate={{ 
             x: [0, -80, 80, 0],
             y: [0, 60, -60, 0],
@@ -49,7 +71,7 @@ const Login = ({ onSwitch }) => {
           transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
         />
         <motion.div
-          className="absolute w-64 h-64 bg-pink-500/20 rounded-full blur-3xl top-1/2 right-1/3"
+          className="absolute w-64 h-64 bg-accent-400/15 rounded-full blur-3xl top-1/2 right-1/3"
           animate={{ 
             x: [0, 50, -50, 0],
             y: [0, -30, 30, 0]
@@ -91,7 +113,7 @@ const Login = ({ onSwitch }) => {
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
-              className="hidden lg:block space-y-8"
+              className="hidden lg:block space-y-8 rounded-3xl bg-gradient-to-br from-brand-700 via-brand-600 to-violet-700 p-10 shadow-2xl shadow-brand-900/40"
             >
               {/* Logo & Title */}
               <div className="flex items-center gap-4 mb-8">
@@ -108,25 +130,19 @@ const Login = ({ onSwitch }) => {
               {/* Main Headline */}
               <div>
                 <h2 className="text-5xl font-black text-white mb-4 leading-tight">
-                  Welcome Back to Your
+                  {t('auth.side.loginHeading1')}
                   <span className="block bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
-                    Winning Proposals
+                    {t('auth.side.loginHeading2')}
                   </span>
                 </h2>
                 <p className="text-xl text-indigo-200">
-                  Generate professional proposals in seconds and win more bids with AI.
+                  {t('auth.side.loginSubtitle')}
                 </p>
               </div>
 
               {/* Feature List */}
               <div className="space-y-4">
-                {[
-                  { icon: Zap, text: 'Generate proposals in under 60 seconds' },
-                  { icon: Award, text: 'Win 3x more bids with AI-powered content' },
-                  { icon: TrendingUp, text: 'Track your success with analytics' },
-                  { icon: Shield, text: 'Enterprise-grade security & privacy' }
-                ].map((feature, i) => {
-                  const Icon = feature.icon;
+                {[Zap, Award, TrendingUp, Shield].map((Icon, i) => {
                   return (
                     <motion.div
                       key={i}
@@ -138,7 +154,7 @@ const Login = ({ onSwitch }) => {
                       <div className="p-3 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg group-hover:scale-110 transition-transform">
                         <Icon className="w-6 h-6 text-white" />
                       </div>
-                      <span className="text-white font-medium text-lg">{feature.text}</span>
+                      <span className="text-white font-medium text-lg">{t('auth.side.features')[i]}</span>
                     </motion.div>
                   );
                 })}
@@ -147,9 +163,9 @@ const Login = ({ onSwitch }) => {
               {/* Stats */}
               <div className="grid grid-cols-3 gap-4 pt-6">
                 {[
-                  { value: '10K+', label: 'Active Users' },
-                  { value: '500K+', label: 'Proposals' },
-                  { value: '4.9/5', label: 'Rating' }
+                  { value: '10K+', label: t('auth.side.statUsers') },
+                  { value: '500K+', label: t('auth.side.statProposals') },
+                  { value: '4.9/5', label: t('auth.side.statRating') }
                 ].map((stat, i) => (
                   <div key={i} className="text-center p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
                     <div className="text-3xl font-black text-white mb-1">{stat.value}</div>
@@ -166,7 +182,11 @@ const Login = ({ onSwitch }) => {
               transition={{ duration: 0.8 }}
               className="w-full"
             >
-              <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-indigo-100 dark:border-indigo-900 p-10">
+              <div className={`p-10 backdrop-blur-xl rounded-3xl shadow-2xl border-2 transition-colors duration-500 ${
+                darkMode 
+                  ? 'bg-slate-900/95 border-indigo-900' 
+                  : 'bg-white/95 border-indigo-100'
+              }`}>
                 
                 {/* Mobile Logo (only shows on mobile) */}
                 <div className="lg:hidden flex justify-center mb-6">
@@ -178,11 +198,15 @@ const Login = ({ onSwitch }) => {
 
                 {/* Header */}
                 <div className="text-center mb-8">
-                  <h2 className="text-3xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                    Sign In
+                  <h2 className={`text-3xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2 ${
+                    darkMode ? '' : ''
+                  }`}>
+                    {t('auth.login.title')}
                   </h2>
-                  <p className="text-slate-500 dark:text-slate-400 font-medium">
-                    Continue to your dashboard
+                  <p className={`font-medium ${
+                    darkMode ? 'text-slate-400' : 'text-slate-500'
+                  }`}>
+                    {t('auth.login.subtitle')}
                   </p>
                 </div>
 
@@ -204,7 +228,7 @@ const Login = ({ onSwitch }) => {
                   <div>
                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
                       <Mail className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                      Email Address
+                      {t('auth.login.email')}
                     </label>
                     <input
                       type="email"
@@ -212,7 +236,7 @@ const Login = ({ onSwitch }) => {
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-200 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 font-medium shadow-sm hover:border-indigo-300 dark:hover:border-indigo-600"
-                      placeholder="you@example.com"
+                      placeholder={t('auth.login.emailPlaceholder')}
                     />
                   </div>
 
@@ -220,7 +244,7 @@ const Login = ({ onSwitch }) => {
                   <div>
                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
                       <Lock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                      Password
+                      {t('auth.login.password')}
                     </label>
                     <input
                       type="password"
@@ -228,14 +252,14 @@ const Login = ({ onSwitch }) => {
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-200 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 font-medium shadow-sm hover:border-indigo-300 dark:hover:border-indigo-600"
-                      placeholder="••••••••"
+                      placeholder={t('auth.login.passwordPlaceholder')}
                     />
                   </div>
 
                   {/* Forgot Password */}
                   <div className="text-right">
-                    <button className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
-                      Forgot password?
+                    <button type="button" onClick={() => { window.location.href = '/forgot-password'; }} className="text-sm text-brand-600 dark:text-brand-400 font-semibold hover:underline">
+                      {t('auth.login.forgotPassword')}
                     </button>
                   </div>
 
@@ -248,12 +272,12 @@ const Login = ({ onSwitch }) => {
                     {loading ? (
                       <>
                         <Loader2 className="w-6 h-6 animate-spin" />
-                        <span>Signing in...</span>
+                        <span>{t('auth.login.signingIn')}</span>
                       </>
                     ) : (
                       <>
                         <LogIn className="w-6 h-6" />
-                        <span>Sign In to LunarBid</span>
+                        <span>{t('auth.login.signIn')}</span>
                       </>
                     )}
                   </button>
@@ -266,32 +290,32 @@ const Login = ({ onSwitch }) => {
                   </div>
                   <div className="relative flex justify-center text-sm">
                     <span className="px-4 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 font-medium">
-                      Or continue with
+                      {t('auth.login.orContinueWith')}
                     </span>
                   </div>
                 </div>
 
                 {/* Social Login Buttons */}
                 <div className="grid grid-cols-2 gap-4">
-                  <button className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all font-semibold text-slate-700 dark:text-slate-200">
+                  <button type="button" onClick={() => { window.location.href = OAUTH_URL('google'); }} className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all font-semibold text-slate-700 dark:text-slate-200">
                     <Chrome className="w-5 h-5" />
-                    <span className="hidden sm:inline">Google</span>
+                    <span className="hidden sm:inline">{t('auth.login.google')}</span>
                   </button>
-                  <button className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all font-semibold text-slate-700 dark:text-slate-200">
+                  <button type="button" onClick={() => { window.location.href = OAUTH_URL('github'); }} className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all font-semibold text-slate-700 dark:text-slate-200">
                     <Github className="w-5 h-5" />
-                    <span className="hidden sm:inline">GitHub</span>
+                    <span className="hidden sm:inline">{t('auth.login.github')}</span>
                   </button>
                 </div>
 
                 {/* Switch to Register */}
                 <div className="mt-8 pt-6 border-t-2 border-slate-100 dark:border-slate-800 text-center">
                   <p className="text-slate-600 dark:text-slate-400 font-medium">
-                    Don't have an account?{' '}
+                    {t('auth.login.noAccount')}{' '}
                     <button
                       onClick={onSwitch}
                       className="text-indigo-600 dark:text-indigo-400 font-bold hover:text-purple-600 dark:hover:text-purple-400 transition-colors underline decoration-2 underline-offset-2"
                     >
-                      Create Account
+                      {t('auth.login.signUp')}
                     </button>
                   </p>
                 </div>

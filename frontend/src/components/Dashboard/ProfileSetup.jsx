@@ -3,10 +3,12 @@ import { updateProfile, getProfile } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { User, Save, Loader2, Briefcase, Code, DollarSign, Globe, FileText, CheckCircle, Mic, Target } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../locales/LanguageContext.jsx';
 
 const ProfileSetup = () => {
   const { updateUser } = useAuth();
   const { darkMode } = useTheme();
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     experience: '',
     skills: '',
@@ -41,7 +43,7 @@ const ProfileSetup = () => {
     try {
       const res = await updateProfile(formData);
       updateUser(res.data);
-      setSuccess('Profile updated successfully!');
+      setSuccess(t('dashboard.profile.success'));
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Error updating profile');
@@ -76,8 +78,8 @@ const ProfileSetup = () => {
       <div className={darkMode ? 'transition-colors duration-500' : ''}>
         
         {/* Card */}
-        <div className={darkMode ? 'bg-slate-900/95 border-slate-700 rounded-2xl shadow-xl p-8 transition-colors duration-500' 
-                               : 'bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-xl p-8 border-2 border-indigo-100'}>
+        {/* <div className={darkMode ? 'bg-slate-900/95 border-slate-700 rounded-2xl shadow-xl p-8 transition-colors duration-500' 
+                               : 'bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-xl p-8 border-2 border-indigo-100'}> */}
           
           {/* Header */}
           <div className={`flex items-center gap-3 mb-8 pb-6 border-b-2 ${darkMode ? 'border-slate-700' : 'border-indigo-100'}`}>
@@ -86,10 +88,10 @@ const ProfileSetup = () => {
             </div>
             <div>
               <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Freelancer Profile
+                {t('dashboard.profile.title')}
               </h2>
               <p className={darkMode ? 'text-slate-400 text-sm mt-1 font-medium' : 'text-slate-500 text-sm mt-1 font-medium'}>
-                Complete your professional profile for AI-powered proposals
+                {t('dashboard.profile.subtitle')}
               </p>
             </div>
           </div>
@@ -100,7 +102,7 @@ const ProfileSetup = () => {
               <CheckCircle className="w-6 h-6 flex-shrink-0" />
               <div>
                 <p className="font-bold">{success}</p>
-                <p className="text-sm">Your profile information has been saved</p>
+                <p className="text-sm">{t('dashboard.profile.successSub')}</p>
               </div>
             </div>
           )}
@@ -112,17 +114,17 @@ const ProfileSetup = () => {
             <div className={cardClasses}>
               <label className={labelClasses}>
                 <Briefcase className={`w-5 h-5 ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                Professional Role
+                {t('dashboard.profile.role')}
               </label>
               <input
                 type="text"
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                placeholder="e.g., Web Developer, UI Designer, Content Writer..."
+                placeholder={t('dashboard.profile.rolePlaceholder')}
                 className={inputClasses}
               />
               <p className={darkMode ? 'text-xs text-slate-400 mt-2 ml-1' : 'text-xs text-slate-500 mt-2 ml-1'}>
-                Define your primary profession
+                {t('dashboard.profile.roleHint')}
               </p>
             </div>
 
@@ -130,12 +132,12 @@ const ProfileSetup = () => {
             <div className={cardClasses}>
               <label className={labelClasses}>
                 <Briefcase className={`w-5 h-5 ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                Your Experience
+                {t('dashboard.profile.experience')}
               </label>
               <textarea
                 value={formData.experience}
                 onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
-                placeholder="e.g., 5+ years in full-stack web development..."
+                placeholder={t('dashboard.profile.experiencePlaceholder')}
                 rows={4}
                 className={`${inputClasses} resize-none`}
               />
@@ -145,17 +147,17 @@ const ProfileSetup = () => {
             <div className={cardClasses}>
               <label className={labelClasses}>
                 <Code className={`w-5 h-5 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
-                Key Skills
+                {t('dashboard.profile.skills')}
               </label>
               <input
                 type="text"
                 value={formData.skills}
                 onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
-                placeholder="React, Node.js, MongoDB, AWS..."
+                placeholder={t('dashboard.profile.skillsPlaceholder')}
                 className={inputClasses}
               />
               <p className={darkMode ? 'text-xs text-slate-400 mt-2 ml-1' : 'text-xs text-slate-500 mt-2 ml-1'}>
-                Separate skills with commas
+                {t('dashboard.profile.skillsHint')}
               </p>
             </div>
 
@@ -164,13 +166,13 @@ const ProfileSetup = () => {
               <div className={cardClasses}>
                 <label className={labelClasses}>
                   <DollarSign className={`w-5 h-5 ${darkMode ? 'text-green-400' : 'text-green-600'}`} />
-                  Hourly Rate
+                  {t('dashboard.profile.hourlyRate')}
                 </label>
                 <input
                   type="text"
                   value={formData.hourlyRate}
                   onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
-                  placeholder="$50/hour"
+                  placeholder={t('dashboard.profile.ratePlaceholder')}
                   className={`${inputClasses} font-bold text-lg`}
                 />
               </div>
@@ -178,7 +180,7 @@ const ProfileSetup = () => {
               <div className={cardClasses}>
                 <label className={labelClasses}>
                   <Globe className={`w-5 h-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                  Portfolio URL
+                  {t('dashboard.profile.portfolio')}
                 </label>
                 <input
                   type="url"
@@ -194,17 +196,17 @@ const ProfileSetup = () => {
             <div className={cardClasses}>
               <label className={labelClasses}>
                 <FileText className={`w-5 h-5 ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                Professional Bio
+                {t('dashboard.profile.bio')}
               </label>
               <textarea
                 value={formData.bio}
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                placeholder="Write a compelling professional summary..."
+                placeholder={t('dashboard.profile.bioPlaceholder')}
                 rows={5}
                 className={`${inputClasses} resize-none`}
               />
               <p className={darkMode ? 'text-xs text-slate-400 mt-2 ml-1' : 'text-xs text-slate-500 mt-2 ml-1'}>
-                This will be used to personalize your proposals
+                {t('dashboard.profile.bioHint')}
               </p>
             </div>
 
@@ -212,19 +214,19 @@ const ProfileSetup = () => {
             <div className={cardClasses}>
               <label className={labelClasses}>
                 <Mic className={`w-5 h-5 ${darkMode ? 'text-orange-400' : 'text-orange-600'}`} />
-                Preferred Proposal Tone
+                {t('dashboard.profile.tone')}
               </label>
               <select
                 value={formData.preferredTone}
                 onChange={(e) => setFormData({ ...formData, preferredTone: e.target.value })}
                 className={inputClasses}
               >
-                <option value="Professional">Professional</option>
-                <option value="Friendly">Friendly</option>
-                <option value="Persuasive">Persuasive</option>
+                <option value="Professional">{t('dashboard.profile.toneProfessional')}</option>
+                <option value="Friendly">{t('dashboard.profile.toneFriendly')}</option>
+                <option value="Persuasive">{t('dashboard.profile.tonePersuasive')}</option>
               </select>
               <p className={darkMode ? 'text-xs text-slate-400 mt-2 ml-1' : 'text-xs text-slate-500 mt-2 ml-1'}>
-                Choose how AI should tone your proposals
+                {t('dashboard.profile.toneHint')}
               </p>
             </div>
 
@@ -232,7 +234,7 @@ const ProfileSetup = () => {
             <div className={cardClasses}>
               <label className={labelClasses}>
                 <Target className={`w-5 h-5 ${darkMode ? 'text-rose-400' : 'text-rose-600'}`} />
-                Platform Focus
+                {t('dashboard.profile.platformFocus')}
               </label>
               <div className="space-y-3">
                 {['Upwork', 'Fiverr', 'Freelancer'].map((platform) => (
@@ -256,7 +258,7 @@ const ProfileSetup = () => {
                 ))}
               </div>
               <p className={darkMode ? 'text-xs text-slate-400 mt-3 ml-1' : 'text-xs text-slate-500 mt-3 ml-1'}>
-                Select the platforms where you focus your freelance work
+                {t('dashboard.profile.platformHint')}
               </p>
             </div>
 
@@ -269,12 +271,12 @@ const ProfileSetup = () => {
               {loading ? (
                 <>
                   <Loader2 className="w-6 h-6 animate-spin" />
-                  <span>Saving Your Profile...</span>
+                  <span>{t('dashboard.profile.saving')}</span>
                 </>
               ) : (
                 <>
                   <Save className="w-6 h-6" />
-                  <span>Save Profile</span>
+                  <span>{t('dashboard.profile.save')}</span>
                 </>
               )}
             </button>
@@ -284,19 +286,16 @@ const ProfileSetup = () => {
           <div className={infoBoxClasses}>
             <h3 className="font-bold mb-2 flex items-center gap-2">
               <User className="w-5 h-5" />
-              Why complete your profile?
+              {t('dashboard.profile.whyTitle')}
             </h3>
             <ul className="text-sm space-y-1 ml-7">
-              <li>✨ AI generates more personalized and compelling proposals</li>
-              <li>🎯 Highlight your expertise and stand out from competitors</li>
-              <li>⚡ Save time by not repeating information in every proposal</li>
-              <li>💼 Build credibility with detailed professional information</li>
-              <li>🗣️ Set your tone for consistent communication</li>
-              <li>📍 Focus on your preferred platforms</li>
+              {t('dashboard.profile.whyList').map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
             </ul>
           </div>
 
-        </div>
+        {/* </div> */}
       </div>
     </div>
   );

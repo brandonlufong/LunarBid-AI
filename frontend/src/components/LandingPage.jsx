@@ -2,9 +2,15 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Check, Sparkles, Moon, Zap, Target, Clock, Users, TrendingUp, Award, Shield, ArrowRight, Star, Crown, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../locales/LanguageContext.jsx';
+import { useTheme } from '../context/ThemeContext.jsx';
+import LanguageSelector from './UI/LanguageSelector';
+import DarkModeToggle from './DarkModeToggle';
 
-const LandingPage = ({ theme }) => {
+const LandingPage = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
+  const { darkMode } = useTheme();
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 40 },
@@ -22,37 +28,51 @@ const LandingPage = ({ theme }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 text-white overflow-hidden">
+    <div className={`min-h-screen overflow-hidden transition-colors duration-500 ${
+      darkMode
+        ? 'bg-[#0b1020] text-slate-100'
+        : 'bg-gradient-to-b from-white via-indigo-50/50 to-white text-slate-900'
+    }`}>
 
       {/* NAVIGATION */}
-      <nav className="fixed top-0 w-full bg-slate-900/80 backdrop-blur-xl border-b border-indigo-500/30 z-50 shadow-2xl">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <nav className={`fixed top-0 w-full backdrop-blur-xl border-b z-50 transition-colors duration-500 ${
+        darkMode
+          ? 'bg-[#0b1020]/70 border-white/10'
+          : 'bg-white/70 border-slate-200'
+      }`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Moon className="w-10 h-10 text-white" />
-              <Sparkles className="w-4 h-4 text-yellow-400 absolute -top-1 -right-1 animate-pulse" />
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-brand-600 to-violet-600 flex items-center justify-center shadow-lg shadow-brand-600/30">
+                <Moon className="w-6 h-6 text-white" />
+              </div>
+              <Sparkles className="w-4 h-4 text-accent-400 absolute -top-1 -right-1 animate-pulse" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-white">LunarBid</h1>
-              <p className="text-xs text-indigo-300">AI-Powered Proposals</p>
+              <h1 className={`text-xl font-bold tracking-tight ${darkMode ? 'text-white' : 'text-slate-900'}`}>LunarBid</h1>
+              <p className={`hidden sm:block text-xs font-medium ${darkMode ? 'text-brand-300' : 'text-brand-600'}`}>{t('landing.footer.tagline')}</p>
             </div>
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-2 sm:gap-3 items-center">
+            <LanguageSelector />
+            <DarkModeToggle />
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => navigate('/login')}
-              className="px-6 py-2.5 text-white font-semibold hover:text-indigo-200 transition-colors"
+              className={`hidden sm:block px-5 py-2.5 font-semibold rounded-xl transition-colors ${
+                darkMode ? 'text-slate-200 hover:text-white' : 'text-slate-700 hover:text-brand-700'
+              }`}
             >
-              Login
+              {t('landing.hero.login')}
             </motion.button>
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.03, y: -1 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => navigate('/register')}
-              className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
+              className="px-4 sm:px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-semibold text-sm sm:text-base leading-tight shadow-lg shadow-brand-600/25 transition-all"
             >
-              Get Started
+              {t('landing.hero.cta')}
             </motion.button>
           </div>
         </div>
@@ -63,7 +83,7 @@ const LandingPage = ({ theme }) => {
         {/* Animated background orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <motion.div
-            className="absolute w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl top-20 left-1/4"
+            className="absolute w-96 h-96 bg-brand-500/25 rounded-full blur-3xl top-20 left-1/4"
             animate={{ 
               x: [0, 100, -100, 0],
               y: [0, -50, 50, 0],
@@ -72,7 +92,7 @@ const LandingPage = ({ theme }) => {
             transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
           />
           <motion.div
-            className="absolute w-80 h-80 bg-purple-500/20 rounded-full blur-3xl bottom-20 right-1/4"
+            className="absolute w-80 h-80 bg-violet-600/20 rounded-full blur-3xl bottom-20 right-1/4"
             animate={{ 
               x: [0, -80, 80, 0],
               y: [0, 60, -60, 0],
@@ -81,7 +101,7 @@ const LandingPage = ({ theme }) => {
             transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
           />
           <motion.div
-            className="absolute w-64 h-64 bg-pink-500/20 rounded-full blur-3xl top-1/2 right-1/3"
+            className="absolute w-64 h-64 bg-accent-400/15 rounded-full blur-3xl top-1/2 right-1/3"
             animate={{ 
               x: [0, 50, -50, 0],
               y: [0, -30, 30, 0]
@@ -97,8 +117,13 @@ const LandingPage = ({ theme }) => {
             transition={{ duration: 0.8 }}
             className="inline-block mb-6"
           >
-            <span className="px-4 py-2 bg-indigo-500/20 border border-indigo-400/30 rounded-full text-indigo-200 text-sm font-semibold backdrop-blur-sm">
-              🚀 Trusted by 10,000+ Freelancers & Agencies
+            <span className={`inline-flex items-center gap-2 px-4 py-1.5 border rounded-full text-sm font-semibold backdrop-blur-sm ${
+              darkMode
+                ? 'bg-brand-500/10 border-brand-400/30 text-brand-100'
+                : 'bg-brand-50 border-brand-200 text-brand-700'
+            }`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-400 animate-pulse" />
+              {t('landing.hero.badge')}
             </span>
           </motion.div>
 
@@ -108,10 +133,10 @@ const LandingPage = ({ theme }) => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-5xl md:text-7xl font-black mb-6 leading-tight"
           >
-            Win More Bids in
+            {t('landing.hero.title1')}
             <br />
-            <span className="bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
-              Seconds, Not Hours
+            <span className="bg-gradient-to-r from-brand-500 via-violet-500 to-accent-400 bg-clip-text text-transparent">
+              {t('landing.hero.title2')}
             </span>
           </motion.h1>
 
@@ -119,9 +144,13 @@ const LandingPage = ({ theme }) => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xl md:text-2xl mb-12 max-w-3xl mx-auto text-indigo-100 leading-relaxed"
+            className={`text-xl md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed font-medium ${
+              darkMode ? 'text-indigo-100' : 'text-slate-700'
+            }`}
           >
-            LunarBid helps <strong className="text-white">freelancers and agencies</strong> create personalized, winning proposals using AI — faster, smarter, and tailored to every opportunity.
+            {t('landing.hero.subtitleA')}<strong className={`font-black ${
+              darkMode ? 'text-white' : 'text-slate-900'
+            }`}>{t('landing.hero.subtitleStrong')}</strong>{t('landing.hero.subtitleB')}
           </motion.p>
 
           <motion.div
@@ -134,17 +163,21 @@ const LandingPage = ({ theme }) => {
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate('/register')}
-              className="px-8 py-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl font-bold text-lg shadow-2xl hover:shadow-pink-500/50 transition-all duration-300 flex items-center gap-2"
+              className="px-8 py-4 bg-gradient-to-r from-brand-600 to-violet-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-brand-600/30 hover:shadow-brand-600/50 transition-all duration-300 flex items-center gap-2"
             >
-              Start Free Trial
+              {t('landing.hero.startTrial')}
               <ArrowRight className="w-5 h-5" />
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 rounded-2xl font-bold text-lg hover:bg-white/20 transition-all duration-300"
+              className={`px-8 py-4 backdrop-blur-sm border-2 rounded-2xl font-bold text-lg transition-all duration-300 ${
+                darkMode
+                  ? 'bg-white/5 border-white/15 text-white hover:bg-white/10'
+                  : 'bg-white border-slate-200 text-slate-900 hover:border-brand-300 hover:text-brand-700'
+              }`}
             >
-              Watch Demo
+              {t('landing.hero.watchDemo')}
             </motion.button>
           </motion.div>
 
@@ -156,13 +189,17 @@ const LandingPage = ({ theme }) => {
             className="mt-16 grid grid-cols-3 gap-8 max-w-3xl mx-auto"
           >
             {[
-              { value: '10K+', label: 'Active Users' },
-              { value: '500K+', label: 'Proposals Generated' },
-              { value: '4.9/5', label: 'User Rating' }
+              { value: '10K+', label: t('landing.hero.statUsers') },
+              { value: '500K+', label: t('landing.hero.statProposals') },
+              { value: '4.9/5', label: t('landing.hero.statRating') }
             ].map((stat, i) => (
               <div key={i} className="text-center">
-                <div className="text-3xl md:text-4xl font-black text-white mb-2">{stat.value}</div>
-                <div className="text-sm text-indigo-200">{stat.label}</div>
+                <div className={`text-3xl md:text-4xl font-black mb-2 ${
+                  darkMode ? 'text-white' : 'text-slate-900'
+                }`}>{stat.value}</div>
+                <div className={`text-sm font-medium ${
+                  darkMode ? 'text-indigo-200' : 'text-slate-600'
+                }`}>{stat.label}</div>
               </div>
             ))}
           </motion.div>
@@ -170,7 +207,9 @@ const LandingPage = ({ theme }) => {
       </section>
 
       {/* PROBLEM SECTION */}
-      <section className="px-6 py-24 bg-slate-900/50 backdrop-blur-xl">
+      <section className={`px-6 py-24 border-y transition-colors duration-500 ${
+        darkMode ? 'bg-white/[0.02] border-white/5' : 'bg-slate-50 border-slate-100'
+      }`}>
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial="hidden"
@@ -180,35 +219,43 @@ const LandingPage = ({ theme }) => {
           >
             <motion.h2 
               variants={fadeInUp}
-              className="text-4xl md:text-5xl font-black text-center mb-6"
+              className={`text-4xl md:text-5xl font-black text-center mb-6 ${
+                darkMode ? 'text-white' : 'text-slate-900'
+              }`}
             >
-              The Proposal Problem
+              {t('landing.problem.title')}
             </motion.h2>
             <motion.p 
               variants={fadeInUp}
-              className="text-xl text-center text-indigo-200 mb-12 max-w-2xl mx-auto"
+              className={`text-xl text-center mb-12 max-w-2xl mx-auto ${
+                darkMode ? 'text-slate-300' : 'text-slate-600'
+              }`}
             >
-              Whether you're a solo freelancer or running an agency, writing proposals shouldn't be your bottleneck.
+              {t('landing.problem.subtitle')}
             </motion.p>
 
             <div className="grid md:grid-cols-2 gap-6">
               {[
-                { icon: Clock, text: 'Spending 2-3 hours per proposal kills productivity', color: 'from-red-500 to-orange-500' },
-                { icon: Target, text: 'Generic templates do not win competitive bids', color: 'from-orange-500 to-yellow-500' },
-                { icon: Users, text: 'Agency teams waste time on repetitive writing', color: 'from-yellow-500 to-green-500' },
-                { icon: TrendingUp, text: 'Missing opportunities because writing takes too long', color: 'from-green-500 to-blue-500' }
+                { icon: Clock, color: 'from-red-500 to-orange-500' },
+                { icon: Target, color: 'from-orange-500 to-yellow-500' },
+                { icon: Users, color: 'from-yellow-500 to-green-500' },
+                { icon: TrendingUp, color: 'from-green-500 to-blue-500' }
               ].map((item, i) => {
                 const Icon = item.icon;
                 return (
                   <motion.div
                     key={i}
                     variants={fadeInUp}
-                    className="p-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl hover:bg-white/10 transition-all duration-300 group"
+                    className={`p-6 border rounded-2xl transition-all duration-300 group ${
+                      darkMode
+                        ? 'bg-white/5 border-white/10 hover:border-brand-400/40'
+                        : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-brand-300'
+                    }`}
                   >
                     <div className={`w-12 h-12 bg-gradient-to-br ${item.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                       <Icon className="w-6 h-6 text-white" />
                     </div>
-                    <p className="text-lg font-semibold">{item.text}</p>
+                    <p className={`text-lg font-semibold ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{t('landing.problem.items')[i]}</p>
                   </motion.div>
                 );
               })}
@@ -216,11 +263,21 @@ const LandingPage = ({ theme }) => {
 
             <motion.div 
               variants={fadeInUp}
-              className="mt-12 text-center p-8 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border-2 border-indigo-400/30 rounded-2xl backdrop-blur-sm"
+              className={`mt-12 text-center p-8 rounded-2xl border-2 transition-colors duration-500 ${
+                darkMode
+                  ? 'bg-gradient-to-r from-brand-600/15 to-violet-600/15 border-brand-400/30'
+                  : 'bg-gradient-to-r from-brand-50 to-violet-50 border-brand-200'
+              }`}
             >
-              <Zap className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold mb-2">LunarBid Solves This</h3>
-              <p className="text-indigo-200 text-lg">Generate personalized, professional proposals in under 60 seconds</p>
+              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-brand-600 to-violet-600 flex items-center justify-center shadow-lg shadow-brand-600/30">
+                <Zap className="w-7 h-7 text-white" />
+              </div>
+              <h3 className={`text-2xl font-bold mb-2 ${
+                darkMode ? 'text-white' : 'text-slate-900'
+              }`}>{t('landing.problem.solveTitle')}</h3>
+              <p className={`text-lg ${
+                darkMode ? 'text-slate-300' : 'text-slate-700'
+              }`}>{t('landing.problem.solveText')}</p>
             </motion.div>
           </motion.div>
         </div>
@@ -239,32 +296,42 @@ const LandingPage = ({ theme }) => {
               variants={fadeInUp}
               className="text-4xl md:text-5xl font-black text-center mb-16"
             >
-              How It Works
+              {t('landing.how.title')}
             </motion.h2>
 
             <div className="grid md:grid-cols-4 gap-8">
               {[
-                { step: '01', icon: '📋', title: 'Paste Job Details', desc: 'Copy the job description from Upwork, Fiverr, or any platform' },
-                { step: '02', icon: '🎯', title: 'Choose Your Style', desc: 'Select tone (formal, friendly, persuasive) and customize your profile' },
-                { step: '03', icon: '✨', title: 'AI Generates', desc: 'Our AI crafts a personalized, winning proposal in seconds' },
-                { step: '04', icon: '🚀', title: 'Copy & Win', desc: 'One-click copy and submit to win more bids' }
+                { step: '01', icon: '📋' },
+                { step: '02', icon: '🎯' },
+                { step: '03', icon: '✨' },
+                { step: '04', icon: '🚀' }
               ].map((item, i) => (
                 <motion.div
                   key={i}
                   variants={fadeInUp}
                   className="relative text-center group"
                 >
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl font-black text-white/5">
+                  <div className={`absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl font-black ${
+                    darkMode ? 'text-white/10' : 'text-slate-900/10'
+                  }`}>
                     {item.step}
                   </div>
-                  <div className="p-8 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm border border-white/20 rounded-2xl hover:border-indigo-400/50 transition-all duration-300 hover:scale-105">
+                  <div className={`p-8 rounded-2xl border transition-all duration-300 hover:-translate-y-1 ${
+                    darkMode
+                      ? 'bg-white/5 border-white/10 hover:border-brand-400/40'
+                      : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-brand-300'
+                  }`}>
                     <div className="text-5xl mb-4">{item.icon}</div>
-                    <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-                    <p className="text-indigo-200 text-sm">{item.desc}</p>
+                    <h3 className={`text-xl font-bold mb-3 ${
+                      darkMode ? 'text-white' : 'text-slate-900'
+                    }`}>{t('landing.how.steps')[i].title}</h3>
+                    <p className={`text-sm leading-relaxed ${
+                      darkMode ? 'text-slate-300' : 'text-slate-600'
+                    }`}>{t('landing.how.steps')[i].desc}</p>
                   </div>
                   {i < 3 && (
                     <div className="hidden md:block absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2">
-                      <ArrowRight className="w-6 h-6 text-indigo-400" />
+                      <ArrowRight className="w-6 h-6 text-brand-400" />
                     </div>
                   )}
                 </motion.div>
@@ -275,7 +342,9 @@ const LandingPage = ({ theme }) => {
       </section>
 
       {/* FEATURES */}
-      <section className="px-6 py-24 bg-gradient-to-br from-indigo-900/50 to-purple-900/50">
+      <section className={`px-6 py-24 border-y transition-colors duration-500 ${
+        darkMode ? 'bg-white/[0.02] border-white/5' : 'bg-slate-50 border-slate-100'
+      }`}>
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial="hidden"
@@ -287,36 +356,42 @@ const LandingPage = ({ theme }) => {
               variants={fadeInUp}
               className="text-4xl md:text-5xl font-black text-center mb-6"
             >
-              Powerful Features
+              {t('landing.features.title')}
             </motion.h2>
-            <motion.p 
+            <motion.p
               variants={fadeInUp}
-              className="text-xl text-center text-indigo-200 mb-12"
+              className={`text-xl text-center mb-12 font-medium ${
+                darkMode ? 'text-slate-300' : 'text-slate-600'
+              }`}
             >
-              Everything freelancers and agencies need to win more bids
+              {t('landing.features.subtitle')}
             </motion.p>
 
             <div className="grid md:grid-cols-3 gap-6">
               {[
-                { icon: Sparkles, title: 'AI-Powered Generation', desc: 'Advanced AI creates human-like, personalized proposals' },
-                { icon: Target, title: 'Platform Ready', desc: 'Perfect for Upwork, Fiverr, Freelancer.com, and more' },
-                { icon: Zap, title: 'Lightning Fast', desc: 'Generate proposals in under 60 seconds' },
-                { icon: Users, title: 'Team Collaboration', desc: 'Perfect for agencies with multiple team members' },
-                { icon: Award, title: 'Tone Control', desc: 'Professional, friendly, or persuasive — you choose' },
-                { icon: Shield, title: 'History & Analytics', desc: 'Track all proposals and see what works best' }
+                { icon: Sparkles }, { icon: Target }, { icon: Zap },
+                { icon: Users }, { icon: Award }, { icon: Shield }
               ].map((feature, i) => {
                 const Icon = feature.icon;
                 return (
                   <motion.div
                     key={i}
                     variants={fadeInUp}
-                    className="p-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl hover:bg-white/10 hover:border-indigo-400/50 transition-all duration-300 group"
+                    className={`p-6 border rounded-2xl transition-all duration-300 group ${
+                      darkMode
+                        ? 'bg-white/5 border-white/10 hover:border-brand-400/40'
+                        : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-brand-300'
+                    }`}
                   >
-                    <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <div className="w-14 h-14 bg-gradient-to-br from-brand-600 to-violet-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-brand-600/20">
                       <Icon className="w-7 h-7 text-white" />
                     </div>
-                    <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                    <p className="text-indigo-200">{feature.desc}</p>
+                    <h3 className={`text-xl font-bold mb-2 ${
+                      darkMode ? 'text-white' : 'text-slate-900'
+                    }`}>{t('landing.features.items')[i].title}</h3>
+                    <p className={`${
+                      darkMode ? 'text-slate-300' : 'text-slate-600'
+                    }`}>{t('landing.features.items')[i].desc}</p>
                   </motion.div>
                 );
               })}
@@ -338,84 +413,26 @@ const LandingPage = ({ theme }) => {
               variants={fadeInUp}
               className="text-4xl md:text-5xl font-black text-center mb-6"
             >
-              Simple, Transparent Pricing
+              {t('landing.pricing.title')}
             </motion.h2>
-            <motion.p 
+            <motion.p
               variants={fadeInUp}
-              className="text-xl text-center text-indigo-200 mb-12"
+              className={`text-xl text-center mb-12 font-medium ${
+                darkMode ? 'text-indigo-100' : 'text-slate-500'
+              }`}
             >
-              Start free, upgrade when you need more. Cancel anytime.
+              {t('landing.pricing.subtitle')}
             </motion.p>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
               {[
-                { 
-                  id: 'free',
-                  name: 'Free', 
-                  price: '$0', 
-                  period: 'forever', 
-                  features: [
-                    '5 proposals per day',
-                    'Basic templates',
-                    'Email support'
-                  ],
-                  cta: 'Start Free',
-                  popular: false,
-                  icon: Zap,
-                  color: 'from-gray-500 to-gray-600'
-                },
-                { 
-                  id: 'starter',
-                  name: 'Starter', 
-                  price: '$12', 
-                  period: 'per month', 
-                  features: [
-                    '50 proposals per month',
-                    'Save client profiles',
-                    'All tones & styles',
-                    'Standard support'
-                  ],
-                  cta: 'Start Trial',
-                  popular: false,
-                  icon: TrendingUp,
-                  color: 'from-blue-500 to-indigo-600'
-                },
-                { 
-                  id: 'pro',
-                  name: 'Pro', 
-                  price: '$19', 
-                  period: 'per month', 
-                  features: [
-                    'Unlimited proposals',
-                    'Priority AI processing',
-                    'Advanced analytics',
-                    'Priority support',
-                    'Custom branding'
-                  ],
-                  cta: 'Start Trial',
-                  popular: true,
-                  icon: Crown,
-                  color: 'from-purple-500 to-pink-600'
-                },
-                { 
-                  id: 'agency',
-                  name: 'Agency', 
-                  price: '$49', 
-                  period: 'per month', 
-                  features: [
-                    'Everything in Pro',
-                    'Team collaboration',
-                    '5 team members',
-                    'White-label branding',
-                    'API access',
-                    'Dedicated support'
-                  ],
-                  cta: 'Contact Sales',
-                  popular: false,
-                  icon: Building2,
-                  color: 'from-emerald-500 to-teal-600'
-                }
+                { id: 'free', name: 'Free', price: '$0', popular: false, icon: Zap, color: 'from-gray-500 to-gray-600', cta: t('landing.pricing.ctaFree') },
+                { id: 'starter', name: 'Starter', price: '$12', popular: false, icon: TrendingUp, color: 'from-blue-500 to-indigo-600', cta: t('landing.pricing.ctaTrial') },
+                { id: 'pro', name: 'Pro', price: '$19', popular: true, icon: Crown, color: 'from-purple-500 to-pink-600', cta: t('landing.pricing.ctaTrial') },
+                { id: 'agency', name: 'Agency', price: '$49', popular: false, icon: Building2, color: 'from-emerald-500 to-teal-600', cta: t('landing.pricing.ctaSales') }
               ].map((plan, i) => {
+                const planFeatures = t('landing.pricing.features')[plan.id];
+                const planPeriod = plan.id === 'free' ? t('landing.pricing.forever') : t('landing.pricing.perMonth');
                 const Icon = plan.icon;
                 return (
                   <motion.div
@@ -424,12 +441,14 @@ const LandingPage = ({ theme }) => {
                     className={`relative p-8 rounded-2xl backdrop-blur-sm transition-all duration-300 ${
                       plan.popular 
                         ? 'bg-gradient-to-br from-indigo-600 to-purple-600 border-2 border-yellow-400 scale-105 shadow-2xl' 
-                        : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                        : darkMode
+                          ? 'bg-white/5 border border-white/10 hover:bg-white/10'
+                          : 'bg-white border-slate-200 shadow-lg hover:shadow-xl hover:bg-slate-50'
                     }`}
                   >
                     {plan.popular && (
                       <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-yellow-400 to-orange-400 text-slate-900 font-bold text-sm rounded-full">
-                        Most Popular
+                        {t('landing.pricing.mostPopular')}
                       </div>
                     )}
                     
@@ -440,13 +459,17 @@ const LandingPage = ({ theme }) => {
                     <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
                     <div className="mb-6">
                       <span className="text-5xl font-black">{plan.price}</span>
-                      <span className="text-indigo-200 ml-2">/{plan.period}</span>
+                      <span className={`ml-2 ${
+                        darkMode ? 'text-indigo-200' : 'text-slate-600'
+                      }`}>/{planPeriod}</span>
                     </div>
                     <ul className="space-y-3 mb-8">
-                      {plan.features.map((feature, j) => (
+                      {planFeatures.map((feature, j) => (
                         <li key={j} className="flex items-start gap-2">
                           <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm">{feature}</span>
+                          <span className={`text-sm ${
+                            darkMode ? 'text-slate-200' : 'text-slate-700'
+                          }`}>{feature}</span>
                         </li>
                       ))}
                     </ul>
@@ -471,7 +494,9 @@ const LandingPage = ({ theme }) => {
       </section>
 
       {/* TESTIMONIALS */}
-      <section className="px-6 py-24 bg-slate-900/50">
+      <section className={`px-6 py-24 border-y transition-colors duration-500 ${
+        darkMode ? 'bg-white/[0.02] border-white/5' : 'bg-slate-50 border-slate-100'
+      }`}>
         <div className="max-w-6xl mx-auto">
           <motion.h2
             initial={{ opacity: 0, y: 30 }}
@@ -479,14 +504,14 @@ const LandingPage = ({ theme }) => {
             viewport={{ once: true }}
             className="text-4xl md:text-5xl font-black text-center mb-16"
           >
-            Loved by Professionals
+            {t('landing.testimonials.title')}
           </motion.h2>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { name: 'Sarah Johnson', role: 'Freelance Designer', text: 'LunarBid cut my proposal time from 2 hours to 2 minutes. Game changer!' },
-              { name: 'Mike Chen', role: 'Agency Owner', text: 'Our team now submits 5x more proposals. ROI was immediate.' },
-              { name: 'Emma Davis', role: 'Full Stack Developer', text: 'I win 60% more bids now. The AI understands what clients want.' }
+              { name: 'Sarah Johnson' },
+              { name: 'Mike Chen' },
+              { name: 'Emma Davis' }
             ].map((testimonial, i) => (
               <motion.div
                 key={i}
@@ -494,17 +519,19 @@ const LandingPage = ({ theme }) => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="p-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl"
+                className={`p-6 border rounded-2xl transition-colors ${
+                  darkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'
+                }`}
               >
                 <div className="flex gap-1 mb-4">
                   {[...Array(5)].map((_, j) => (
-                    <Star key={j} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                    <Star key={j} className="w-5 h-5 fill-accent-400 text-accent-400" />
                   ))}
                 </div>
-                <p className="text-lg mb-4 italic">"{testimonial.text}"</p>
+                <p className={`text-lg mb-4 italic ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>"{t('landing.testimonials.items')[i].text}"</p>
                 <div>
-                  <div className="font-bold">{testimonial.name}</div>
-                  <div className="text-sm text-indigo-200">{testimonial.role}</div>
+                  <div className={`font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{testimonial.name}</div>
+                  <div className={`text-sm ${darkMode ? 'text-brand-300' : 'text-brand-600'}`}>{t('landing.testimonials.items')[i].role}</div>
                 </div>
               </motion.div>
             ))}
@@ -518,22 +545,22 @@ const LandingPage = ({ theme }) => {
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
-          className="max-w-4xl mx-auto text-center p-12 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl shadow-2xl"
+          className="max-w-4xl mx-auto text-center p-12 bg-gradient-to-br from-brand-600 via-violet-600 to-brand-700 rounded-3xl shadow-2xl shadow-brand-600/30"
         >
-          <h2 className="text-4xl md:text-5xl font-black mb-6">
-            Ready to Win More Bids?
+          <h2 className="text-4xl md:text-5xl font-black mb-6 text-white">
+            {t('landing.finalCta.title')}
           </h2>
-          <p className="text-xl mb-8 text-indigo-100">
-            Join 10,000+ freelancers and agencies using LunarBid
+          <p className="text-xl mb-8 text-brand-100">
+            {t('landing.finalCta.subtitle')}
           </p>
           <div className="flex justify-center gap-4 flex-wrap">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate('/register')}
-              className="px-8 py-4 bg-white text-indigo-600 font-bold rounded-2xl hover:bg-gray-100 transition-all shadow-xl text-lg"
+              className="px-8 py-4 bg-white text-brand-700 font-bold rounded-2xl hover:bg-brand-50 transition-all shadow-xl text-lg"
             >
-              Start Free Trial →
+              {t('landing.finalCta.button')}
             </motion.button>
           </div>
         </motion.div>
@@ -547,17 +574,17 @@ const LandingPage = ({ theme }) => {
               <Moon className="w-8 h-8 text-white" />
               <div>
                 <div className="font-bold text-lg">LunarBid</div>
-                <div className="text-sm text-indigo-200">AI-Powered Proposals</div>
+                <div className="text-sm text-indigo-200">{t('landing.footer.tagline')}</div>
               </div>
             </div>
             <div className="flex gap-8 text-sm">
-              <a href="#" className="hover:text-indigo-400 transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-indigo-400 transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-indigo-400 transition-colors">Contact</a>
+              <a href="#" className="hover:text-indigo-400 transition-colors">{t('landing.footer.privacy')}</a>
+              <a href="#" className="hover:text-indigo-400 transition-colors">{t('landing.footer.terms')}</a>
+              <a href="#" className="hover:text-indigo-400 transition-colors">{t('landing.footer.contact')}</a>
             </div>
           </div>
           <div className="mt-8 text-center text-sm text-indigo-200">
-            © {new Date().getFullYear()} LunarBid. All rights reserved. Powered by Moon Solutions.
+            {t('landing.footer.rights', { year: new Date().getFullYear() })}
           </div>
         </div>
       </footer>

@@ -3,13 +3,20 @@ const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { PAID_PLANS, getStripePriceId, getPublicPlans } = require('../config/plans');
 
-// Stripe Price IDs
-const STRIPE_PRICES = {
-  starter: process.env.STRIPE_STARTER_PRICE_ID || 'price_starter',
-  pro: process.env.STRIPE_PRO_PRICE_ID || 'price_pro',
-  agency: process.env.STRIPE_AGENCY_PRICE_ID || 'price_agency'
-};
+// Stripe Price IDs (resolved from config/plans.js -> env)
+const STRIPE_PRICES = PAID_PLANS.reduce((acc, planId) => {
+  acc[planId] = getStripePriceId(planId) || `price_${planId}`;
+  return acc;
+}, {});
+
+// ===============================
+// Public: list all plans (pricing page, no auth)
+// ===============================
+router.get('/plans', (req, res) => {
+  res.json({ plans: getPublicPlans() });
+});
 
 // ===============================
 // Get current subscription info
@@ -428,80 +435,3 @@ async function handlePaymentFailure(invoice) {
 }
 
 module.exports = router;
-
-
-// Backup of previous version:
-// const express = require('express');
-// const router = express.Router();
-// const User = require('../models/User');
-// const auth = require('../middleware/auth');
-
-// // Get current subscription info
-// router.get('/', auth, async (req, res) => {
-//   try {
-//     const user = await User.findById(req.user._id);
-    
-//     res.json({
-//       subscription: user.subscription,
-//       usage: user.usage,
-//       limits: getPlanLimits(user.subscription.plan)
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
-
-// // Upgrade/Change plan
-// router.post('/upgrade', auth, async (req, res) => {
-//   try {
-//     const { plan } = req.body; // 'starter' or 'pro'
-    
-//     if (!['starter', 'pro'].includes(plan)) {
-//       return res.status(400).json({ message: 'Invalid plan' });
-//     }
-
-//     const user = await User.findById(req.user._id);
-    
-//     // In production, integrate with Stripe here
-//     // For now, just update the plan
-//     user.subscription.plan = plan;
-//     user.subscription.status = 'active';
-//     user.subscription.startDate = new Date();
-//     user.subscription.endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
-    
-//     await user.save();
-    
-//     res.json({ 
-//       message: 'Plan upgraded successfully',
-//       subscription: user.subscription 
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
-
-// // Cancel subscription
-// router.post('/cancel', auth, async (req, res) => {
-//   try {
-//     const user = await User.findById(req.user._id);
-    
-//     user.subscription.status = 'cancelled';
-//     await user.save();
-    
-//     res.json({ message: 'Subscription cancelled' });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
-
-// // Helper function
-// function getPlanLimits(plan) {
-//   const limits = {
-//     free: { daily: 5, monthly: null, name: 'Free' },
-//     starter: { daily: null, monthly: 50, name: 'Starter' },
-//     pro: { daily: null, monthly: null, name: 'Pro' }
-//   };
-//   return limits[plan];
-// }
-
-// module.exports = router;

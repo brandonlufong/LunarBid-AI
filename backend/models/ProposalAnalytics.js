@@ -92,16 +92,14 @@ const proposalAnalyticsSchema = new mongoose.Schema({
 });
 
 // Update timestamp on save
-proposalAnalyticsSchema.pre('save', function(next) {
+proposalAnalyticsSchema.pre('save', function() {
   this.updatedAt = Date.now();
-  
+
   // Calculate response time if dates are set
   if (this.dateSubmitted && this.dateResponded && !this.responseTime) {
     const diff = this.dateResponded - this.dateSubmitted;
-    this.responseTime = Math.round(diff / (1000 * 60 * 60)); // Convert to hours
+    this.responseTime = Math.round(diff / (1000 * 60 * 60));
   }
-  
-  next();
 });
 
 // Methods
@@ -140,7 +138,7 @@ proposalAnalyticsSchema.statics.getWinRate = async function(userId, filters = {}
 
 proposalAnalyticsSchema.statics.getPerformanceByTone = async function(userId) {
   return await this.aggregate([
-    { $match: { user: mongoose.Types.ObjectId(userId), status: { $in: ['accepted', 'rejected'] } } },
+    { $match: { user: new mongoose.Types.ObjectId(userId), status: { $in: ['accepted', 'rejected'] } } },
     {
       $group: {
         _id: '$toneUsed',

@@ -1,24 +1,119 @@
 @import "tailwindcss";
 
-@import "tailwindcss";
+/* ==========================================================================
+   Tailwind v4 dark mode — class based.
+   Tailwind v4 defaults `dark:` to prefers-color-scheme. We drive it from the
+   `.dark` class on <html> (toggled by ThemeContext) instead. This single line
+   is what makes the light/dark toggle actually work.
+   ========================================================================== */
+@custom-variant dark (&:where(.dark, .dark *));
 
-/* Custom Scrollbar */
+/* ==========================================================================
+   DESIGN SYSTEM (LunarBid) — see HANDOFF.md.
+   Brand: violet-indigo night sky + moonlight-gold accent. Fonts: Space Grotesk
+   (display) + Inter (body). These @theme tokens generate utilities like
+   `bg-brand-600`, `text-accent-500`, `font-display`.
+   ========================================================================== */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50:  #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
+
+  --color-violet-500: #8b5cf6;
+  --color-violet-600: #7c3aed;
+
+  --color-accent-300: #fcd34d;
+  --color-accent-400: #fbbf24;
+  --color-accent-500: #f59e0b;
+}
+
+/* ==========================================================================
+   Semantic surface tokens — flip by theme. Use via bg-[var(--surface)] etc.
+   ========================================================================== */
+:root {
+  --page: #f8fafc;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --ring: #4f46e5;
+}
+.dark {
+  --page: #0b1020;
+  --surface: #131a2e;
+  --surface-2: #0f172a;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --border: #1e293b;
+  --ring: #818cf8;
+}
+
+/* ==========================================================================
+   Theme-aware base. Applied to the root so overscroll areas match the theme.
+   ========================================================================== */
+html {
+  background-color: #f8fafc;      /* --page light */
+  color: #0f172a;                 /* --text light */
+  overscroll-behavior: none;
+  transition: background-color 0.4s ease, color 0.4s ease;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+html.dark {
+  background-color: #0b1020;      /* --page dark (night sky) */
+  color: #e2e8f0;                 /* --text dark */
+}
+body {
+  background-color: transparent;
+}
+
+/* Display font for all headings — consistent typographic voice app-wide. */
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* Custom Scrollbar (light) */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-track {
   background: #f1f5f9;
   border-radius: 10px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: linear-gradient(to bottom, #6366f1, #8b5cf6);
   border-radius: 10px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(to bottom, #4f46e5, #7c3aed);
+}
+
+/* Dark theme scrollbar */
+.dark .custom-scrollbar::-webkit-scrollbar-track,
+.dark-scrollbar::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb,
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #475569, #6b7280);
+}
+
+/* Prevent white background flash in scroll containers */
+.custom-scrollbar, .dark-scrollbar,
+.overflow-y-auto, .overflow-auto {
+  overscroll-behavior: contain;
 }
 
 /* Animations */
@@ -26,20 +121,28 @@
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
 
 /* Gradient animation for buttons */
-.bg-size-200 {
-  background-size: 200% auto;
+.bg-size-200 { background-size: 200% auto; }
+.bg-pos-0 { background-position: 0% center; }
+.hover\:bg-pos-100:hover { background-position: 100% center; }
+
+/* Accessibility: honor reduced-motion for CSS animations/transitions. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
-.bg-pos-0 {
-  background-position: 0% center;
-}
-
-.hover\:bg-pos-100:hover {
-  background-position: 100% center;
+/* Consistent focus-visible ring across interactive elements. */
+a:focus-visible, button:focus-visible, input:focus-visible,
+textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }

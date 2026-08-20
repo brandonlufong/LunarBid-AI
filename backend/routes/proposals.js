@@ -1,11 +1,88 @@
 // backend/routes/proposals.js
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const Proposal = require('../models/Proposal');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
-const { generateProposal } = require('../services/aiService');
+const { generateProposal, generateJSON } = require('../services/aiService');
 const ProposalAnalytics = require('../models/ProposalAnalytics');
+
+// ===============================
+// AI Job-Post Analyzer
+// Extracts structured insight from a job description to help the user win.
+// ===============================
+const analyzePrompt = (jobDescription, jobTitle, user) => `You are an expert freelance bidding strategist. Analyze the following job post and return ONLY a JSON object (no prose, no markdown) matching this exact TypeScript shape:
+
+{
+  "summary": string,                 // 1-2 sentence plain-language summary of what the client wants
+  "keyRequirements": string[],       // 3-6 concrete must-have requirements
+  "suggestedSkills": string[],       // 3-8 skills/technologies to emphasize
+  "clientPainPoints": string[],      // 2-4 underlying problems the client is really trying to solve
+  "suggestedTone": "formal" | "friendly" | "persuasive",
+  "suggestedLength": "short" | "medium" | "detailed",
+  "complexity": "low" | "medium" | "high",
+  "estimatedBudgetRange": string,    // e.g. "$800 - $1,500" (infer from scope if none given)
+  "redFlags": string[],              // 0-4 warning signs (vague scope, low budget, scope creep risk...) — [] if none
+  "winningAngles": string[],         // 2-4 specific angles/hooks to stand out from other bidders
+  "matchScore": number,              // 0-100, how well this freelancer's profile fits the job
+  "matchReason": string              // 1 sentence explaining the score
+}
+
+Job Title: ${jobTitle || '(not provided)'}
+Job Description:
+"""
+${jobDescription}
+"""
+
+Freelancer profile (for matchScore):
+Role: ${user.profile?.role || 'General freelancer'}
+Skills: ${user.profile?.skills || 'Not specified'}
+Experience: ${user.profile?.experience || 'Not specified'}
+
+Return only the JSON object.`;
+
+router.post('/analyze', auth, async (req, res) => {
+  try {
+    const { jobDescription, jobTitle } = req.body;
+    if (!jobDescription || jobDescription.trim().length < 20) {
+      return res.status(400).json({ message: 'Please provide a job description (at least 20 characters).' });
+    }
+
+    const user = await User.findById(req.user._id);
+    const isPriorityAI = user.hasFeatureAccess('priorityAI');
+
+    let analysis;
+    try {
+      analysis = await generateJSON(analyzePrompt(jobDescription, jobTitle, user), isPriorityAI);
+    } catch (aiError) {
+      console.error('Analyze failed:', aiError.message);
+      return res.status(502).json({ message: 'Could not analyze this job post. Please try again.' });
+    }
+
+    // Normalize / clamp
+    const clampEnum = (v, allowed, def) => (allowed.includes(v) ? v : def);
+    const result = {
+      summary: analysis.summary || '',
+      keyRequirements: Array.isArray(analysis.keyRequirements) ? analysis.keyRequirements.slice(0, 8) : [],
+      suggestedSkills: Array.isArray(analysis.suggestedSkills) ? analysis.suggestedSkills.slice(0, 12) : [],
+      clientPainPoints: Array.isArray(analysis.clientPainPoints) ? analysis.clientPainPoints.slice(0, 6) : [],
+      suggestedTone: clampEnum(analysis.suggestedTone, ['formal', 'friendly', 'persuasive'], 'friendly'),
+      suggestedLength: clampEnum(analysis.suggestedLength, ['short', 'medium', 'detailed'], 'medium'),
+      complexity: clampEnum(analysis.complexity, ['low', 'medium', 'high'], 'medium'),
+      estimatedBudgetRange: analysis.estimatedBudgetRange || 'N/A',
+      redFlags: Array.isArray(analysis.redFlags) ? analysis.redFlags.slice(0, 5) : [],
+      winningAngles: Array.isArray(analysis.winningAngles) ? analysis.winningAngles.slice(0, 5) : [],
+      matchScore: Math.max(0, Math.min(100, Number(analysis.matchScore) || 0)),
+      matchReason: analysis.matchReason || ''
+    };
+
+    res.json({ analysis: result });
+  } catch (error) {
+    console.error('Error analyzing job:', error.message);
+    res.status(500).json({ message: 'Server error while analyzing job post' });
+  }
+});
 
 // ===============================
 // Generate proposal
@@ -51,8 +128,8 @@ router.post('/generate', auth, async (req, res) => {
       detailed: 'Create an in-depth 400-1000 word proposal with detailed roadmap'
     };
 
-    // Determine AI priority based on plan
-    const isPriorityAI = user.subscription.plan === 'pro';
+    // Determine AI priority based on plan feature (pro + agency)
+    const isPriorityAI = user.hasFeatureAccess('priorityAI');
 
     const prompt = `Generate a ${isPriorityAI ? 'comprehensive and detailed' : 'professional'} freelance proposal:
 
@@ -189,6 +266,75 @@ ${user.name}`;
 }
 
 // ===============================
+// Create / return a public share link
+// ===============================
+router.post('/:id/share', auth, async (req, res) => {
+  try {
+    const proposal = await Proposal.findOne({ _id: req.params.id, user: req.user._id });
+    if (!proposal) return res.status(404).json({ message: 'Proposal not found' });
+    if (!proposal.shareToken) {
+      proposal.shareToken = crypto.randomBytes(16).toString('hex');
+    }
+    proposal.isPublic = true;
+    await proposal.save();
+    res.json({ shareToken: proposal.shareToken, isPublic: true });
+  } catch (error) {
+    console.error('Share error:', error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ===============================
+// Revoke a public share link
+// ===============================
+router.post('/:id/unshare', auth, async (req, res) => {
+  try {
+    const proposal = await Proposal.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      { isPublic: false },
+      { new: true }
+    );
+    if (!proposal) return res.status(404).json({ message: 'Proposal not found' });
+    res.json({ isPublic: false });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ===============================
+// PUBLIC: view a shared proposal (NO auth). Must precede GET /:id.
+// ===============================
+router.get('/public/:token', async (req, res) => {
+  try {
+    const proposal = await Proposal.findOne({ shareToken: req.params.token, isPublic: true })
+      .populate('user', 'name branding');
+    if (!proposal) return res.status(404).json({ message: 'This proposal link is not available.' });
+
+    // Track views (best-effort)
+    proposal.viewCount += 1;
+    if (!proposal.firstViewedAt) proposal.firstViewedAt = new Date();
+    proposal.lastViewedAt = new Date();
+    await proposal.save();
+
+    const author = proposal.user || {};
+    res.json({
+      jobTitle: proposal.jobTitle,
+      clientName: proposal.clientName,
+      content: proposal.editedProposal || proposal.generatedProposal,
+      createdAt: proposal.createdAt,
+      author: {
+        name: author.name || 'A LunarBid user',
+        branding: author.branding || null
+      }
+    });
+  } catch (error) {
+    console.error('Public view error:', error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ===============================
 // Update proposal (for editing)
 // ===============================
 router.put('/:id', auth, async (req, res) => {
@@ -224,6 +370,12 @@ router.put('/:id', auth, async (req, res) => {
 // ===============================
 router.post('/:id/send', auth, async (req, res) => {
   try {
+    const { recipientEmail, subject, message } = req.body;
+
+    if (!recipientEmail || !subject ) {
+      return res.status(400).json({ message: 'Recipient email and subject are required or Proposal already sent' });
+    }
+
     const proposal = await Proposal.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },
       {
@@ -239,9 +391,21 @@ router.post('/:id/send', auth, async (req, res) => {
       return res.status(404).json({ message: 'Proposal not found' });
     }
 
+    // TODO: Integrate with email service (SendGrid, Nodemailer, etc.)
+    // For now, just mark as sent and log the details
+    console.log('Proposal sent to:', recipientEmail);
+    console.log('Subject:', subject);
+    console.log('status:', proposal.status);
+    console.log('Sent?', proposal.isSent);
+    if (message) {
+      console.log('Message:', message);
+    }
+
     res.json({
       message: 'Proposal sent successfully',
-      proposal
+      proposal,
+      sentTo: recipientEmail,
+      subject
     });
   } catch (error) {
     console.error(error);
@@ -356,3 +520,209 @@ router.delete('/:id', auth, async (req, res) => {
 });
 
 module.exports = router;
+
+// const express = require('express');
+// const router = express.Router();
+// const Proposal = require('../models/Proposal');
+// const ProposalAnalytics = require('../models/ProposalAnalytics');
+// const User = require('../models/User');
+// const auth = require('../middleware/auth');
+// const { generateProposal } = require('../services/aiService');
+
+// /* ======================================================
+//    GENERATE PROPOSAL
+// ====================================================== */
+// router.post('/generate', auth, async (req, res) => {
+//   try {
+//     const { jobTitle, jobDescription, clientName, budget, tone, length } = req.body;
+
+//     if (!jobTitle || !jobDescription) {
+//       return res.status(400).json({ message: 'Job title and description are required' });
+//     }
+
+//     const user = await User.findById(req.user._id);
+
+//     const canGenerate = user.canGenerateProposal();
+//     if (!canGenerate.allowed) {
+//       return res.status(403).json({
+//         message: `Limit reached (${canGenerate.limit})`,
+//         reason: canGenerate.reason
+//       });
+//     }
+
+//     const isPriorityAI = user.hasFeatureAccess('priorityAI');
+
+//     const prompt = `Generate a professional freelance proposal.
+
+// Job Title: ${jobTitle}
+// Job Description: ${jobDescription}
+// Client: ${clientName || 'Hiring Manager'}
+// Budget: ${budget || 'Flexible'}
+
+// Tone: ${tone || 'friendly'}
+// Length: ${length || 'medium'}
+// Quality: ${isPriorityAI ? 'Premium' : 'Standard'}
+
+// Write naturally and professionally.`;
+
+//     let generatedProposal;
+//     try {
+//       generatedProposal = await generateProposal(prompt, isPriorityAI);
+//     } catch {
+//       generatedProposal = fallbackProposal(req.body, user);
+//     }
+
+//     const proposal = await Proposal.create({
+//       user: user._id,
+//       jobTitle,
+//       jobDescription,
+//       clientName,
+//       budget,
+//       tone,
+//       length,
+//       generatedProposal
+//     });
+
+//     await ProposalAnalytics.create({
+//       user: user._id,
+//       proposal: proposal._id,
+//       jobTitle,
+//       clientName,
+//       toneUsed: tone,
+//       styleUsed: length,
+//       proposalLength: generatedProposal.split(' ').length,
+//       metadata: {
+//         isPriorityAI
+//       }
+//     });
+
+//     user.incrementUsage();
+//     await user.save();
+
+//     res.json({ proposal });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: 'Failed to generate proposal' });
+//   }
+// });
+
+// /* ======================================================
+//    UPDATE PROPOSAL (SAFE)
+// ====================================================== */
+// router.put('/:id', auth, async (req, res) => {
+//   try {
+//     const { editedProposal, status } = req.body;
+
+//     const update = {};
+
+//     if (editedProposal !== undefined) {
+//       update.editedProposal = editedProposal;
+//     }
+
+//     if (status !== undefined) {
+//       update.status = status;
+//     }
+
+//     const proposal = await Proposal.findOneAndUpdate(
+//       { _id: req.params.id, user: req.user._id },
+//       update,
+//       { new: true }
+//     );
+
+//     if (!proposal) {
+//       return res.status(404).json({ message: 'Proposal not found' });
+//     }
+
+//     res.json({ proposal });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: 'Update failed' });
+//   }
+// });
+
+// /* ======================================================
+//    SEND PROPOSAL (AUTHORITATIVE)
+// ====================================================== */
+// router.post('/:id/send', auth, async (req, res) => {
+//   try {
+//     const proposal = await Proposal.findOne({
+//       _id: req.params.id,
+//       user: req.user._id
+//     });
+
+//     if (!proposal) {
+//       return res.status(404).json({ message: 'Proposal not found' });
+//     }
+
+//     if (proposal.isSent) {
+//       return res.status(400).json({ message: 'Proposal already sent' });
+//     }
+
+//     proposal.status = 'sent';
+//     proposal.isSent = true;
+//     proposal.sentAt = new Date();
+
+//     await proposal.save();
+
+//     console.log('Proposal sent:', proposal._id);
+
+//     res.json({ proposal });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: 'Send failed' });
+//   }
+// });
+
+// /* ======================================================
+//    HISTORY
+// ====================================================== */
+// router.get('/history', auth, async (req, res) => {
+//   const proposals = await Proposal.find({ user: req.user._id })
+//     .sort({ createdAt: -1 });
+
+//   res.json(proposals);
+// });
+
+// /* ======================================================
+//    SINGLE
+// ====================================================== */
+// router.get('/:id', auth, async (req, res) => {
+//   const proposal = await Proposal.findOne({
+//     _id: req.params.id,
+//     user: req.user._id
+//   });
+
+//   if (!proposal) {
+//     return res.status(404).json({ message: 'Not found' });
+//   }
+
+//   res.json(proposal);
+// });
+
+// /* ======================================================
+//    DELETE
+// ====================================================== */
+// router.delete('/:id', auth, async (req, res) => {
+//   await Proposal.findOneAndDelete({
+//     _id: req.params.id,
+//     user: req.user._id
+//   });
+
+//   res.json({ message: 'Deleted' });
+// });
+
+// /* ======================================================
+//    FALLBACK
+// ====================================================== */
+// function fallbackProposal(data, user) {
+//   return `Hello,
+
+// I’m interested in the ${data.jobTitle} role and confident I can deliver value.
+
+// Best regards,
+// ${user.name}`;
+// }
+
+// module.exports = router;

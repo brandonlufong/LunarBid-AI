@@ -248,11 +248,30 @@ const generateProposal = async (prompt, isPriority = false) => {
     }
   }
 
+  // This should never be reached, but just in case
   throw new Error('Failed to generate proposal with any provider');
+};
+
+// ===============================
+// Generate + parse strict JSON (for the job analyzer / structured features)
+// Robustly extracts the first {...} block and parses it. Throws if unparseable.
+// ===============================
+const generateJSON = async (prompt, isPriority = false) => {
+  const raw = await generateProposal(prompt, isPriority);
+  // Strip code fences and isolate the JSON object
+  let text = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1) {
+    throw new Error('AI did not return JSON');
+  }
+  text = text.slice(start, end + 1);
+  return JSON.parse(text);
 };
 
 module.exports = {
   generateProposal,
+  generateJSON,
   generateWithGroq,
   generateWithTogether,
   generateWithOpenRouter,

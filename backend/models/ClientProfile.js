@@ -105,10 +105,9 @@ const clientProfileSchema = new mongoose.Schema({
   }
 });
 
-// Update timestamp on save
-clientProfileSchema.pre('save', function(next) {
+// Update timestamp on save (modern Mongoose: no next() callback)
+clientProfileSchema.pre('save', function() {
   this.updatedAt = Date.now();
-  next();
 });
 
 // Virtual for win rate

@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, Search, Edit2, Trash2, Star, StarOff, Loader2, CheckCircle, X, Building, Mail, Phone, Tag, TrendingUp } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useToast } from '../UI/Toast';
+import { useLanguage } from '../../locales/LanguageContext.jsx';
 import axios from 'axios';
 
 const ClientProfiles = () => {
   const { darkMode } = useTheme();
+  const toast = useToast();
+  const { t } = useLanguage();
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasAccess, setHasAccess] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
@@ -36,10 +41,10 @@ const ClientProfiles = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProfiles(response.data);
+      setHasAccess(true);
     } catch (error) {
       if (error.response?.status === 403) {
-        // Feature not available
-        alert('Client Profiles are available in Starter plan and above. Please upgrade!');
+        setHasAccess(false);
       }
       console.error('Error loading profiles:', error);
     } finally {
@@ -58,13 +63,13 @@ const ClientProfiles = () => {
         await axios.put(`/api/client-profiles/${editingProfile._id}`, formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setSuccessMessage('Profile updated successfully!');
+        setSuccessMessage(t('dashboard.clients.profileUpdated'));
       } else {
         // Create new profile
         await axios.post('/api/client-profiles', formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setSuccessMessage('Profile created successfully!');
+        setSuccessMessage(t('dashboard.clients.profileCreated'));
       }
       
       await loadProfiles();
@@ -74,15 +79,15 @@ const ClientProfiles = () => {
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
       if (error.response?.status === 403) {
-        alert(error.response.data.message || 'You have reached your profile limit. Please upgrade!');
+        toast.error(error.response.data.message || t('dashboard.clients.limitReached'));
       } else {
-        alert('Error saving profile. Please try again.');
+        toast.error(t('dashboard.clients.saveFailed'));
       }
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this profile?')) return;
+    if (!confirm(t('dashboard.clients.deleteConfirm'))) return;
     
     try {
       const token = localStorage.getItem('token');
@@ -90,10 +95,10 @@ const ClientProfiles = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       await loadProfiles();
-      setSuccessMessage('Profile deleted successfully!');
+      setSuccessMessage(t('dashboard.clients.profileDeleted'));
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
-      alert('Error deleting profile');
+      toast.error(t('dashboard.clients.deleteFailed'));
     }
   };
 
@@ -154,6 +159,25 @@ const ClientProfiles = () => {
     ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}
     hover:shadow-lg hover:border-indigo-300`;
 
+  if (!hasAccess) {
+    return (
+      <div className="max-w-4xl mx-auto text-center py-16">
+        <div className={`p-12 rounded-2xl ${darkMode ? 'bg-slate-800 border-2 border-slate-700' : 'bg-white border-2 border-indigo-100'}`}>
+          <Users className={`w-20 h-20 mx-auto mb-6 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`} />
+          <h3 className={`text-2xl font-bold mb-3 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+            Client Profiles
+          </h3>
+          <p className={`mb-6 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+            Save client information for faster, personalized proposals.
+          </p>
+          <div className={`inline-block px-6 py-3 rounded-xl font-bold ${darkMode ? 'bg-indigo-900/50 text-indigo-300' : 'bg-indigo-50 text-indigo-700'}`}>
+            Available in Starter plan ($12/mo) and above
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -172,10 +196,10 @@ const ClientProfiles = () => {
           </div>
           <div>
             <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Client Profiles
+              {t('dashboard.clients.title')}
             </h2>
             <p className={`text-sm mt-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              Save client information for faster proposals
+              {t('dashboard.clients.subtitle')}
             </p>
           </div>
         </div>
@@ -188,7 +212,7 @@ const ClientProfiles = () => {
           className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
         >
           <Plus className="w-5 h-5" />
-          Add Profile
+          {t('dashboard.clients.addProfile')}
         </button>
       </div>
 
@@ -206,7 +230,7 @@ const ClientProfiles = () => {
           <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`} />
           <input
             type="text"
-            placeholder="Search profiles..."
+            placeholder={t('dashboard.clients.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={`w-full pl-12 pr-4 py-3 rounded-xl font-medium border-2 transition-all ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200 placeholder-slate-400' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
@@ -219,10 +243,10 @@ const ClientProfiles = () => {
         <div className={`text-center py-16 ${cardClasses}`}>
           <Users className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`} />
           <h3 className={`text-xl font-bold mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-            {searchTerm ? 'No profiles found' : 'No client profiles yet'}
+            {searchTerm ? t('dashboard.clients.noneFound') : t('dashboard.clients.noneYet')}
           </h3>
           <p className={darkMode ? 'text-slate-400' : 'text-slate-500'}>
-            {searchTerm ? 'Try a different search term' : 'Add your first client profile to get started'}
+            {searchTerm ? t('dashboard.clients.tryDifferent') : t('dashboard.clients.addFirst')}
           </p>
         </div>
       ) : (
@@ -285,20 +309,20 @@ const ClientProfiles = () => {
                   <div className={`text-2xl font-bold ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
                     {profile.totalProposalsSent}
                   </div>
-                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Sent</div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('dashboard.clients.sent')}</div>
                 </div>
                 <div className="text-center">
                   <div className={`text-2xl font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
                     {profile.totalProposalsWon}
                   </div>
-                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Won</div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('dashboard.clients.won')}</div>
                 </div>
                 {profile.totalProposalsSent > 0 && (
                   <div className="text-center">
                     <div className={`text-2xl font-bold ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}>
                       {profile.winRate}%
                     </div>
-                    <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Win Rate</div>
+                    <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('dashboard.clients.winRate')}</div>
                   </div>
                 )}
               </div>
@@ -324,7 +348,7 @@ const ClientProfiles = () => {
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${darkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
                 >
                   <Edit2 className="w-4 h-4" />
-                  Edit
+                  {t('dashboard.clients.edit')}
                 </button>
                 <button
                   onClick={() => handleDelete(profile._id)}
@@ -344,7 +368,7 @@ const ClientProfiles = () => {
           <div className={`rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto ${darkMode ? 'bg-slate-800' : 'bg-white'}`}>
             <div className="flex items-center justify-between mb-6">
               <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-                {editingProfile ? 'Edit Profile' : 'New Client Profile'}
+                {editingProfile ? t('dashboard.clients.editProfile') : t('dashboard.clients.newProfile')}
               </h3>
               <button
                 onClick={() => {
@@ -361,23 +385,23 @@ const ClientProfiles = () => {
               {/* Profile Name */}
               <div>
                 <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                  Profile Name *
+                  {t('dashboard.clients.profileName')} *
                 </label>
                 <input
                   type="text"
                   required
                   value={formData.profileName}
                   onChange={(e) => setFormData({...formData, profileName: e.target.value})}
-                  placeholder="e.g., Tech Startup Client"
+                  placeholder={t('dashboard.clients.profileNamePlaceholder')}
                   className={`w-full px-4 py-3 rounded-lg border-2 ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
                 />
               </div>
 
               {/* Company & Industry */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                    Company Name
+                    {t('dashboard.clients.companyName')}
                   </label>
                   <input
                     type="text"
@@ -388,7 +412,7 @@ const ClientProfiles = () => {
                 </div>
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                    Industry
+                    {t('dashboard.clients.industry')}
                   </label>
                   <input
                     type="text"
@@ -402,7 +426,7 @@ const ClientProfiles = () => {
               {/* Contact Info */}
               <div>
                 <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                  Contact Person
+                  {t('dashboard.clients.contactPerson')}
                 </label>
                 <input
                   type="text"
@@ -412,10 +436,10 @@ const ClientProfiles = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                    Email
+                    {t('dashboard.clients.email')}
                   </label>
                   <input
                     type="email"
@@ -426,7 +450,7 @@ const ClientProfiles = () => {
                 </div>
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                    Phone
+                    {t('dashboard.clients.phone')}
                   </label>
                   <input
                     type="tel"
@@ -438,33 +462,33 @@ const ClientProfiles = () => {
               </div>
 
               {/* Preferences */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                    Preferred Tone
+                    {t('dashboard.clients.preferredTone')}
                   </label>
                   <select
                     value={formData.preferredTone}
                     onChange={(e) => setFormData({...formData, preferredTone: e.target.value})}
                     className={`w-full px-4 py-3 rounded-lg border-2 ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
                   >
-                    <option value="formal">Formal</option>
-                    <option value="friendly">Friendly</option>
-                    <option value="persuasive">Persuasive</option>
+                    <option value="formal">{t('dashboard.clients.toneFormal')}</option>
+                    <option value="friendly">{t('dashboard.clients.toneFriendly')}</option>
+                    <option value="persuasive">{t('dashboard.clients.tonePersuasive')}</option>
                   </select>
                 </div>
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                    Preferred Style
+                    {t('dashboard.clients.preferredStyle')}
                   </label>
                   <select
                     value={formData.preferredStyle}
                     onChange={(e) => setFormData({...formData, preferredStyle: e.target.value})}
                     className={`w-full px-4 py-3 rounded-lg border-2 ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
                   >
-                    <option value="short">Short</option>
-                    <option value="medium">Medium</option>
-                    <option value="detailed">Detailed</option>
+                    <option value="short">{t('dashboard.clients.styleShort')}</option>
+                    <option value="medium">{t('dashboard.clients.styleMedium')}</option>
+                    <option value="detailed">{t('dashboard.clients.styleDetailed')}</option>
                   </select>
                 </div>
               </div>
@@ -472,14 +496,14 @@ const ClientProfiles = () => {
               {/* Notes */}
               <div>
                 <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                  Notes
+                  {t('dashboard.clients.notes')}
                 </label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({...formData, notes: e.target.value})}
                   rows={3}
                   className={`w-full px-4 py-3 rounded-lg border-2 resize-none ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                  placeholder="Any additional notes about this client..."
+                  placeholder={t('dashboard.clients.notesPlaceholder')}
                 />
               </div>
 
@@ -493,7 +517,7 @@ const ClientProfiles = () => {
                   className="w-5 h-5 rounded"
                 />
                 <label htmlFor="favorite" className={`font-medium ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                  Mark as favorite
+                  {t('dashboard.clients.markFavorite')}
                 </label>
               </div>
 
@@ -503,7 +527,7 @@ const ClientProfiles = () => {
                   type="submit"
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold hover:shadow-lg transition-all"
                 >
-                  {editingProfile ? 'Update Profile' : 'Create Profile'}
+                  {editingProfile ? t('dashboard.clients.updateProfile') : t('dashboard.clients.createProfile')}
                 </button>
                 <button
                   type="button"
@@ -513,7 +537,7 @@ const ClientProfiles = () => {
                   }}
                   className={`px-6 py-3 rounded-xl font-bold ${darkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
                 >
-                  Cancel
+                  {t('dashboard.clients.cancel')}
                 </button>
               </div>
             </form>

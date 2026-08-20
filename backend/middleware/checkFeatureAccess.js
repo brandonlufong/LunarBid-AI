@@ -37,8 +37,11 @@ const checkFeatureAccess = (featureName) => {
         });
       }
       
-      // Check if subscription is active
-      if (user.subscription.status !== 'active') {
+      // Check if subscription is active (allow incomplete for paid plans during activation)
+      const paidPlans = ['starter', 'pro', 'agency'];
+      const isPaidPlan = paidPlans.includes(user.subscription.plan);
+      
+      if (user.subscription.status !== 'active' && !isPaidPlan) {
         return res.status(403).json({ 
           error: 'Subscription inactive',
           status: user.subscription.status,

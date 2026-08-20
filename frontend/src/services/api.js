@@ -25,6 +25,10 @@ api.interceptors.request.use(
 export const register = (data) => api.post('/auth/register', data);
 export const login = (data) => api.post('/auth/login', data);
 export const getCurrentUser = () => api.get('/auth/me');
+export const forgotPassword = (email) => api.post('/auth/forgot-password', { email });
+export const resetPassword = (token, password) => api.post('/auth/reset-password', { token, password });
+export const getAuthProviders = () => api.get('/auth/providers');
+export const OAUTH_URL = (provider) => `${API_URL}/auth/${provider}`;
 
 // Profile APIs
 export const updateProfile = (data) => api.put('/profile', data);
@@ -32,9 +36,15 @@ export const getProfile = () => api.get('/profile');
 
 // Proposal APIs
 export const generateProposal = (data) => api.post('/proposals/generate', data);
+export const analyzeJob = (data) => api.post('/proposals/analyze', data);
 export const getProposalHistory = () => api.get('/proposals/history');
 export const getProposal = (id) => api.get(`/proposals/${id}`);
 export const deleteProposal = (id) => api.delete(`/proposals/${id}`);
+export const updateProposal = (id, data) => api.put(`/proposals/${id}`, data);
+export const sendProposal = (id, data) => api.post(`/proposals/${id}/send`, data);
+export const shareProposal = (id) => api.post(`/proposals/${id}/share`);
+export const unshareProposal = (id) => api.post(`/proposals/${id}/unshare`);
+export const getPublicProposal = (token) => api.get(`/proposals/public/${token}`);
 
 // NEW: Subscription endpoints
 export const getSubscription = () => api.get('/subscription');

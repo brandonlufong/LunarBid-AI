@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Palette, Upload, Save, RotateCcw, Eye, Loader2, CheckCircle, Image as ImageIcon, Globe, Briefcase } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useToast } from '../UI/Toast';
+import { useLanguage } from '../../locales/LanguageContext.jsx';
 import axios from 'axios';
 
 const Branding = () => {
   const { darkMode } = useTheme();
+  const toast = useToast();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasAccess, setHasAccess] = useState(true);
@@ -34,6 +38,7 @@ const Branding = () => {
       if (response.data.branding.logoUrl) {
         setLogoPreview(response.data.branding.logoUrl);
       }
+      setHasAccess(true);
     } catch (error) {
       if (error.response?.status === 403) {
         setHasAccess(false);
@@ -48,7 +53,7 @@ const Branding = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB');
+        toast.error(t('dashboard.branding.fileTooLarge'));
         return;
       }
       setLogoFile(file);
@@ -73,10 +78,10 @@ const Branding = () => {
       
       setFormData(prev => ({ ...prev, logoUrl: response.data.logoUrl }));
       setLogoFile(null);
-      setSuccessMessage('Logo uploaded successfully!');
+      setSuccessMessage(t('dashboard.branding.logoUploaded'));
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
-      alert('Error uploading logo');
+      toast.error(t('dashboard.branding.logoUploadError'));
     }
   };
 
@@ -96,10 +101,10 @@ const Branding = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      setSuccessMessage('Branding settings saved successfully!');
+      setSuccessMessage(t('dashboard.branding.saved'));
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
-      alert('Error saving branding settings');
+      toast.error(t('dashboard.branding.saveError'));
     } finally {
       setSaving(false);
     }
@@ -116,10 +121,10 @@ const Branding = () => {
       await loadBranding();
       setLogoPreview('');
       setLogoFile(null);
-      setSuccessMessage('Branding reset to defaults!');
+      setSuccessMessage(t('dashboard.branding.resetDone'));
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
-      alert('Error resetting branding');
+      toast.error(t('dashboard.branding.resetError'));
     }
   };
 
@@ -134,10 +139,10 @@ const Branding = () => {
       setFormData(prev => ({ ...prev, logoUrl: '' }));
       setLogoPreview('');
       setLogoFile(null);
-      setSuccessMessage('Logo removed successfully!');
+      setSuccessMessage(t('dashboard.branding.logoRemoved'));
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
-      alert('Error removing logo');
+      toast.error(t('dashboard.branding.logoRemoveError'));
     }
   };
 
@@ -147,13 +152,13 @@ const Branding = () => {
         <div className={`p-12 rounded-2xl ${darkMode ? 'bg-slate-800 border-2 border-slate-700' : 'bg-white border-2 border-indigo-100'}`}>
           <Palette className={`w-20 h-20 mx-auto mb-6 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`} />
           <h3 className={`text-2xl font-bold mb-3 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-            Custom Branding
+            {t('dashboard.branding.lockedTitle')}
           </h3>
           <p className={`mb-6 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-            Personalize your proposals with your logo, brand colors, and company information.
+            {t('dashboard.branding.lockedDesc')}
           </p>
           <div className={`inline-block px-6 py-3 rounded-xl font-bold ${darkMode ? 'bg-indigo-900/50 text-indigo-300' : 'bg-indigo-50 text-indigo-700'}`}>
-            Available in Pro plan ($19/mo) and above
+            {t('dashboard.branding.lockedCta')}
           </div>
         </div>
       </div>
@@ -178,10 +183,10 @@ const Branding = () => {
           </div>
           <div>
             <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Custom Branding
+              {t('dashboard.branding.title')}
             </h2>
             <p className={`text-sm mt-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              Personalize your proposals with your brand identity
+              {t('dashboard.branding.subtitle')}
             </p>
           </div>
         </div>
@@ -191,7 +196,7 @@ const Branding = () => {
           className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
         >
           <RotateCcw className="w-4 h-4" />
-          Reset to Defaults
+          {t('dashboard.branding.reset')}
         </button>
       </div>
 
@@ -209,7 +214,7 @@ const Branding = () => {
           <div className="flex items-center gap-2 mb-4">
             <ImageIcon className={`w-5 h-5 ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
             <h3 className={`text-lg font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-              Company Logo
+              {t('dashboard.branding.companyLogo')}
             </h3>
           </div>
           
@@ -237,7 +242,7 @@ const Branding = () => {
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold cursor-pointer transition-all ${darkMode ? 'bg-indigo-900/50 hover:bg-indigo-900 text-indigo-300' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700'}`}
               >
                 <Upload className="w-4 h-4" />
-                Choose File
+                {t('dashboard.branding.chooseFile')}
               </label>
               
               {logoPreview && (
@@ -246,12 +251,12 @@ const Branding = () => {
                   onClick={removeLogo}
                   className="block px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg font-semibold transition-all"
                 >
-                  Remove Logo
+                  {t('dashboard.branding.removeLogo')}
                 </button>
               )}
 
               <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                Supported: JPG, PNG, SVG (max 5MB)
+                {t('dashboard.branding.logoSupport')}
               </p>
             </div>
           </div>
@@ -262,7 +267,7 @@ const Branding = () => {
           <div className="flex items-center gap-2 mb-4">
             <Palette className={`w-5 h-5 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
             <h3 className={`text-lg font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-              Brand Colors
+              {t('dashboard.branding.brandColors')}
             </h3>
           </div>
 
@@ -270,7 +275,7 @@ const Branding = () => {
             {/* Primary Color */}
             <div>
               <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                Primary Color
+                {t('dashboard.branding.primaryColor')}
               </label>
               <div className="flex items-center gap-3">
                 <input
@@ -292,7 +297,7 @@ const Branding = () => {
             {/* Secondary Color */}
             <div>
               <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                Secondary Color
+                {t('dashboard.branding.secondaryColor')}
               </label>
               <div className="flex items-center gap-3">
                 <input
@@ -318,7 +323,7 @@ const Branding = () => {
           <div className="flex items-center gap-2 mb-4">
             <Briefcase className={`w-5 h-5 ${darkMode ? 'text-green-400' : 'text-green-600'}`} />
             <h3 className={`text-lg font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-              Company Information
+              {t('dashboard.branding.companyInfo')}
             </h3>
           </div>
 
@@ -326,13 +331,13 @@ const Branding = () => {
             {/* Company Name */}
             <div>
               <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                Company Name
+                {t('dashboard.branding.companyName')}
               </label>
               <input
                 type="text"
                 value={formData.companyName}
                 onChange={(e) => setFormData({...formData, companyName: e.target.value})}
-                placeholder="Your Company Name"
+                placeholder={t('dashboard.branding.companyNamePlaceholder')}
                 className={`w-full px-4 py-3 rounded-lg border-2 ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
               />
             </div>
@@ -340,13 +345,13 @@ const Branding = () => {
             {/* Tagline */}
             <div>
               <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                Tagline
+                {t('dashboard.branding.tagline')}
               </label>
               <input
                 type="text"
                 value={formData.tagline}
                 onChange={(e) => setFormData({...formData, tagline: e.target.value})}
-                placeholder="Your company tagline or slogan"
+                placeholder={t('dashboard.branding.taglinePlaceholder')}
                 className={`w-full px-4 py-3 rounded-lg border-2 ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
               />
             </div>
@@ -354,7 +359,7 @@ const Branding = () => {
             {/* Website */}
             <div>
               <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                Website
+                {t('dashboard.branding.website')}
               </label>
               <div className="flex items-center gap-2">
                 <Globe className={`w-5 h-5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`} />
@@ -375,11 +380,11 @@ const Branding = () => {
           <div className="flex items-center gap-2 mb-4">
             <Eye className={`w-5 h-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
             <h3 className={`text-lg font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-              Preview
+              {t('dashboard.branding.previewTitle')}
             </h3>
           </div>
 
-          <div className="p-8 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900">
+          <div className={`p-8 rounded-lg border-2 border-dashed ${darkMode ? 'border-slate-600 bg-slate-900' : 'border-slate-300 bg-white'}`}>
             <div className="border-b-3 pb-4 mb-4" style={{ borderBottomColor: formData.primaryColor }}>
               {logoPreview && (
                 <img src={logoPreview} alt="Logo" className="max-w-[200px] h-auto mb-4" />
@@ -396,14 +401,14 @@ const Branding = () => {
               )}
             </div>
             <p className={darkMode ? 'text-slate-300' : 'text-slate-700'}>
-              This is a preview of how your branding will appear on proposals.
+              {t('dashboard.branding.previewNote')}
             </p>
             <button
               type="button"
               className="mt-4 px-6 py-3 rounded-lg font-bold text-white transition-all"
               style={{ backgroundColor: formData.primaryColor }}
             >
-              Sample Call-to-Action Button
+              {t('dashboard.branding.sampleCta')}
             </button>
           </div>
         </div>
@@ -418,12 +423,12 @@ const Branding = () => {
             {saving ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Saving...
+                {t('dashboard.branding.saving')}
               </>
             ) : (
               <>
                 <Save className="w-5 h-5" />
-                Save Branding Settings
+                {t('dashboard.branding.save')}
               </>
             )}
           </button>

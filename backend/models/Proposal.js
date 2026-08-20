@@ -53,17 +53,33 @@ const proposalSchema = new mongoose.Schema({
     enum: ['draft', 'sent', 'accepted', 'rejected'],
     default: 'draft'
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
+
+  // Public shareable link
+  shareToken: {
+    type: String,
+    default: null,
+    index: true
   },
-  updatedAt: {
+  isPublic: {
+    type: Boolean,
+    default: false
+  },
+  viewCount: {
+    type: Number,
+    default: 0
+  },
+  firstViewedAt: {
     type: Date,
-    default: Date.now
+    default: null
+  },
+  lastViewedAt: {
+    type: Date,
+    default: null
   }
+}, {
+  timestamps: true // ✅ handles createdAt & updatedAt safely
 });
 
-// Index for faster queries
 proposalSchema.index({ user: 1, createdAt: -1 });
 proposalSchema.index({ user: 1, status: 1 });
 
