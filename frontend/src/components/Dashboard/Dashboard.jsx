@@ -47,8 +47,12 @@ const Dashboard = () => {
   useEffect(() => {
     if (location.state?.tab) {
       setActiveTab(location.state.tab);
+      return;
     }
-  }, [location.state]);
+    // ?tab=subscription (used when Stripe Checkout or the billing portal returns here)
+    const tab = new URLSearchParams(location.search).get('tab');
+    if (tab) setActiveTab(tab);
+  }, [location.state, location.search]);
 
   // Dashboard menu items
   const dashboardMenuItems = [

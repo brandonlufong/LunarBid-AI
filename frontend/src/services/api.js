@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+// Set VITE_API_URL at build time (for example https://api.lunarbid.ai/api).
+// In development the Vite proxy forwards /api to the local backend.
+const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 
 const api = axios.create({
   baseURL: API_URL,
@@ -48,7 +50,10 @@ export const getPublicProposal = (token) => api.get(`/proposals/public/${token}`
 
 // NEW: Subscription endpoints
 export const getSubscription = () => api.get('/subscription');
-export const upgradePlan = (plan) => api.post('/subscription/upgrade', { plan });
+// Billing: both return { url } to redirect to (Stripe Checkout or the Customer Portal).
+export const createCheckout = (plan) => api.post('/subscription/checkout', { plan });
+export const openBillingPortal = () => api.post('/subscription/portal');
+export const upgradePlan = createCheckout; // kept for older imports
 export const cancelSubscription = () => api.post('/subscription/cancel');
 
 // Client Profiles

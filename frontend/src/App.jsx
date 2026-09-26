@@ -10,6 +10,7 @@ import Register from './components/Auth/Register';
 import Dashboard from './components/Dashboard/Dashboard';
 import LandingPage from './components/LandingPage';
 import PublicProposal from './components/PublicProposal';
+import LegalPage from './components/Legal/LegalPage';
 import ForgotPassword from './components/Auth/ForgotPassword';
 import ResetPassword from './components/Auth/ResetPassword';
 import OAuthCallback from './components/Auth/OAuthCallback';
@@ -100,6 +101,11 @@ const AnimatedRoutes = () => {
             </motion.div>
           }
         />
+
+        {/* Legal pages (public) */}
+        <Route path="/terms" element={<motion.div {...pageTransition}><LegalPage doc="terms" /></motion.div>} />
+        <Route path="/privacy" element={<motion.div {...pageTransition}><LegalPage doc="privacy" /></motion.div>} />
+        <Route path="/refunds" element={<motion.div {...pageTransition}><LegalPage doc="refunds" /></motion.div>} />
 
         {/* Catch-all → redirect to landing */}
         <Route path="*" element={<Navigate to="/" replace />} />

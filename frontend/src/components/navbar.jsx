@@ -30,6 +30,9 @@ const Navbar = () => {
                      location.pathname === '/reset-password' ||
                      location.pathname === '/terms-of-service' ||
                      location.pathname === '/privacy-policy' ||
+                     location.pathname === '/terms' ||
+                     location.pathname === '/privacy' ||
+                     location.pathname === '/refunds' ||
                      location.pathname === '/about' ||
                      location.pathname === '/contact' ||
                      location.pathname === '/blog' ||

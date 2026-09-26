@@ -5,6 +5,7 @@ import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { UserPlus, Loader2, Moon, Sparkles, Mail, Lock, User, Chrome, Github, Shield, Zap, Award, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import DarkModeToggle from '../DarkModeToggle';
 import LanguageSelector from '../UI/LanguageSelector';
 
@@ -19,6 +20,11 @@ const Register = ({ onSwitch }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (formData.password.length < 8) {
+      setError(t('auth.register.passwordTooShort'));
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError(t('auth.register.passwordMismatch'));
@@ -167,9 +173,9 @@ const Register = ({ onSwitch }) => {
               {/* Stats */}
               <div className="grid grid-cols-3 gap-4 pt-6">
                 {[
-                  { value: '10K+', label: t('auth.side.statUsers') },
-                  { value: '500K+', label: t('auth.side.statProposals') },
-                  { value: '4.9/5', label: t('auth.side.statRating') }
+                  { value: '5', label: t('auth.side.statUsers') },
+                  { value: '4', label: t('auth.side.statProposals') },
+                  { value: '2', label: t('auth.side.statRating') }
                 ].map((stat, i) => (
                   <div key={i} className="text-center p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
                     <div className="text-3xl font-black text-white mb-1">{stat.value}</div>
@@ -308,6 +314,14 @@ const Register = ({ onSwitch }) => {
                       </>
                     )}
                   </button>
+
+                  {/* Consent to the terms, with links */}
+                  <p className="mt-4 text-center text-xs text-slate-500 dark:text-slate-400">
+                    {t('auth.register.agreeToTerms')}{' '}
+                    <Link to="/terms" className="font-semibold text-indigo-600 hover:underline dark:text-indigo-400">{t('auth.register.termsOfService')}</Link>{' '}
+                    {t('auth.register.and')}{' '}
+                    <Link to="/privacy" className="font-semibold text-indigo-600 hover:underline dark:text-indigo-400">{t('auth.register.privacyPolicy')}</Link>.
+                  </p>
                 </form>
 
                 {/* Divider */}

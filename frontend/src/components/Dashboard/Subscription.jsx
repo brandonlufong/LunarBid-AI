@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getSubscription, upgradePlan, cancelSubscription } from '../../services/api';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { getSubscription, createCheckout, openBillingPortal } from '../../services/api';
 import { Crown, Zap, Check, TrendingUp, Loader2, X, CheckCircle, AlertTriangle, Building2 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../UI/Toast';
@@ -13,59 +14,74 @@ const Subscription = ({ onSubscriptionChange }) => {
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-
-  useEffect(() => {
-    loadSubscription();
-  }, []);
+  const [activating, setActivating] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const loadSubscription = async () => {
     try {
       const res = await getSubscription();
       setSubscriptionData(res.data);
+      return res.data;
     } catch (error) {
       console.error('Error loading subscription');
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    const checkout = new URLSearchParams(location.search).get('checkout');
+    loadSubscription().then((data) => {
+      if (checkout === 'success') {
+        // Stripe confirms payment through the webhook, usually within seconds.
+        // Check a few times until the plan shows as active.
+        setSuccessMessage(t('dashboard.subscription.checkoutSuccess'));
+        if (data?.subscription?.plan === 'free') pollForActivation();
+      } else if (checkout === 'cancelled') {
+        toast.info(t('dashboard.subscription.checkoutCancelled'));
+      }
+      if (checkout) navigate('/dashboard?tab=subscription', { replace: true });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const pollForActivation = async () => {
+    setActivating(true);
+    for (let i = 0; i < 10; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const data = await loadSubscription();
+      if (data?.subscription?.plan !== 'free') {
+        onSubscriptionChange?.();
+        break;
+      }
+    }
+    setActivating(false);
+  };
+
+  // Upgrade: redirect to Stripe Checkout. The plan changes only after Stripe confirms payment.
   const handleUpgrade = async (plan) => {
     setUpgrading(true);
     setSuccessMessage('');
-    
     try {
-      await upgradePlan(plan);
-      await loadSubscription();
-      
-      if (onSubscriptionChange) {
-        console.log('🔄 Triggering subscription refresh in Dashboard');
-        onSubscriptionChange();
-      }
-      
-      setSuccessMessage(t('dashboard.subscription.upgradeSuccess', { plan: plan.toUpperCase() }));
-      setTimeout(() => setSuccessMessage(''), 5000);
+      const res = await createCheckout(plan);
+      window.location.assign(res.data.url);
     } catch (error) {
-      toast.error('Upgrade failed. Please try again or contact support.');
-    } finally {
+      toast.error(error.response?.data?.message || t('dashboard.subscription.checkoutError'));
       setUpgrading(false);
     }
   };
 
-  const handleCancel = async () => {
+  // Manage billing: Stripe Customer Portal (change plan, cancel, invoices, payment method).
+  const handleManageBilling = async () => {
+    setUpgrading(true);
     try {
-      await cancelSubscription();
-      await loadSubscription();
-      
-      if (onSubscriptionChange) {
-        onSubscriptionChange();
-      }
-      
-      setSuccessMessage(t('dashboard.subscription.cancelSuccess'));
-      setShowCancelConfirm(false);
-      setTimeout(() => setSuccessMessage(''), 5000);
+      const res = await openBillingPortal();
+      window.location.assign(res.data.url);
     } catch (error) {
-      toast.error('Cancellation failed. Please contact support.');
+      toast.error(t('dashboard.subscription.portalError'));
+      setUpgrading(false);
     }
   };
 
@@ -158,19 +174,39 @@ const Subscription = ({ onSubscriptionChange }) => {
             {t('dashboard.subscription.yourSubscription')}
           </h2>
 
-          {currentPlan !== 'free' && subscription.status === 'active' && (
+          {subscription.hasBillingAccount && (
             <button
-              onClick={() => setShowCancelConfirm(true)}
-              className={`self-start sm:self-auto px-4 py-2 text-sm font-semibold border-2 rounded-lg transition-all ${
-                darkMode 
-                  ? 'text-red-400 border-red-400 hover:bg-red-900/20' 
-                  : 'text-red-600 border-red-600 hover:bg-red-50'
+              onClick={handleManageBilling}
+              disabled={upgrading}
+              className={`self-start sm:self-auto px-4 py-2 text-sm font-semibold border-2 rounded-lg transition-all disabled:opacity-60 ${
+                darkMode
+                  ? 'text-indigo-300 border-indigo-400 hover:bg-indigo-900/20'
+                  : 'text-indigo-700 border-indigo-600 hover:bg-indigo-50'
               }`}
             >
-              {t('dashboard.subscription.cancelSubscription')}
+              {t('dashboard.subscription.manageBilling')}
             </button>
           )}
         </div>
+
+        {/* Payment and cancellation notices */}
+        {subscription.paymentIssue && (
+          <div role="alert" className={`mb-6 flex items-start gap-3 rounded-xl border p-4 ${darkMode ? 'border-amber-700 bg-amber-900/20 text-amber-200' : 'border-amber-300 bg-amber-50 text-amber-900'}`}>
+            <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" aria-hidden="true" />
+            <p className="text-sm">{t('dashboard.subscription.paymentIssue', { plan: subscription.subscribedPlan })}</p>
+          </div>
+        )}
+        {activating && (
+          <div role="status" className={`mb-6 flex items-center gap-3 rounded-xl border p-4 text-sm ${darkMode ? 'border-indigo-700 bg-indigo-900/20 text-indigo-200' : 'border-indigo-200 bg-indigo-50 text-indigo-900'}`}>
+            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+            {t('dashboard.subscription.activating')}
+          </div>
+        )}
+        {subscription.cancelAtPeriodEnd && subscription.endDate && currentPlan !== 'free' && (
+          <p className={`mb-6 text-sm ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+            {t('dashboard.subscription.endsOn', { date: new Date(subscription.endDate).toLocaleDateString() })}
+          </p>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className={`p-6 rounded-xl border-2 shadow-sm transition-colors duration-300 ${
@@ -181,7 +217,7 @@ const Subscription = ({ onSubscriptionChange }) => {
             <div className={`text-sm mb-1 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{t('dashboard.subscription.currentPlan')}</div>
             <div className={`text-2xl font-bold capitalize flex items-center gap-2 ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
               {currentPlan}
-              {subscription.status === 'cancelled' && (
+              {subscription.cancelAtPeriodEnd && currentPlan !== 'free' && (
                 <span className={`text-xs px-2 py-1 rounded ${
                   darkMode 
                     ? 'bg-red-900/30 text-red-400' 
@@ -216,45 +252,6 @@ const Subscription = ({ onSubscriptionChange }) => {
           </div>
         </div>
       </div>
-
-      {/* ✅ THEMED Cancel Confirmation Modal */}
-      {showCancelConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className={`rounded-2xl p-8 max-w-md w-full shadow-2xl transition-colors duration-300 ${
-            darkMode ? 'bg-slate-800' : 'bg-white'
-          }`}>
-            <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="w-8 h-8 text-orange-600" />
-              <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-                {t('dashboard.subscription.cancelTitle')}
-              </h3>
-            </div>
-            
-            <p className={`mb-6 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-              {t('dashboard.subscription.cancelBody')}
-            </p>
-            
-            <div className="flex gap-3">
-              <button
-                onClick={handleCancel}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all flex items-center justify-center gap-2"
-              >
-                {upgrading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('dashboard.subscription.yesCancel')}
-              </button>
-              <button
-                onClick={() => setShowCancelConfirm(false)}
-                className={`flex-1 px-4 py-2 border-2 rounded-lg font-semibold transition-all ${
-                  darkMode 
-                    ? 'border-slate-600 hover:bg-slate-700' 
-                    : 'border-slate-300 hover:bg-slate-100'
-                }`}
-              >
-                {t('dashboard.subscription.noKeep')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Pricing Plans */}
       <div>
@@ -323,8 +320,8 @@ const Subscription = ({ onSubscriptionChange }) => {
                 </ul>
                 
                 <button
-                  onClick={() => !isCurrent && plan.id !== 'free' && handleUpgrade(plan.id)}
-                  disabled={isCurrent || upgrading || plan.id === 'free'}
+                  onClick={() => !isCurrent && plan.id !== 'free' && plan.id !== 'agency' && handleUpgrade(plan.id)}
+                  disabled={isCurrent || upgrading || plan.id === 'free' || plan.id === 'agency'}
                   className={`w-full py-3 rounded-xl font-bold transition-all ${
                     isCurrent
                       ? 'bg-gray-400 cursor-not-allowed text-white'
@@ -335,7 +332,7 @@ const Subscription = ({ onSubscriptionChange }) => {
                         : 'bg-indigo-600 hover:bg-indigo-700 text-white'
                   }`}
                 >
-                  {isCurrent ? t('dashboard.subscription.currentPlanBtn') : upgrading ? t('dashboard.subscription.processing') : plan.id === 'free' ? t('dashboard.subscription.freePlanBtn') : plan.id === 'agency' ? t('dashboard.subscription.contactSales') : t('dashboard.subscription.upgradeNow')}
+                  {isCurrent ? t('dashboard.subscription.currentPlanBtn') : upgrading ? t('dashboard.subscription.processing') : plan.id === 'free' ? t('dashboard.subscription.freePlanBtn') : plan.id === 'agency' ? t('dashboard.subscription.comingSoon') : t('dashboard.subscription.upgradeNow')}
                 </button>
               </div>
             );

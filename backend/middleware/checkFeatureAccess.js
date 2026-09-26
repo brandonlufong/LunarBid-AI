@@ -26,29 +26,22 @@ const checkFeatureAccess = (featureName) => {
       
       // Check if user has access to the feature
       const hasAccess = user.hasFeatureAccess(featureName);
+      const plan = user.effectivePlan();
       
       if (!hasAccess) {
         return res.status(403).json({ 
-          error: `Feature '${featureName}' not available in ${user.subscription.plan} plan`,
+          error: `Feature '${featureName}' not available in ${plan} plan`,
           upgradeRequired: true,
-          currentPlan: user.subscription.plan,
+          currentPlan: plan,
+          paymentIssue: user.subscription.plan !== plan,
           feature: featureName,
-          message: getUpgradeMessage(user.subscription.plan, featureName)
+          message: getUpgradeMessage(plan, featureName)
         });
       }
       
-      // Check if subscription is active (allow incomplete for paid plans during activation)
-      const paidPlans = ['starter', 'pro', 'agency'];
-      const isPaidPlan = paidPlans.includes(user.subscription.plan);
-      
-      if (user.subscription.status !== 'active' && !isPaidPlan) {
-        return res.status(403).json({ 
-          error: 'Subscription inactive',
-          status: user.subscription.status,
-          message: 'Please update your subscription to continue using this feature'
-        });
-      }
-      
+      // hasFeatureAccess() already uses the effective plan, so a paid plan whose
+      // payment is incomplete, unpaid or canceled is treated as free above.
+
       // Attach user to request for use in route handlers
       req.userFull = user;
       
@@ -142,7 +135,7 @@ const checkUsageLimit = (resourceType) => {
               : `Monthly limit of ${canGenerate.limit} proposals reached`,
             reason: canGenerate.reason,
             limit: canGenerate.limit,
-            currentPlan: user.subscription.plan,
+            currentPlan: user.effectivePlan(),
             usage: {
               today: user.usage.proposalsToday,
               thisMonth: user.usage.proposalsThisMonth
@@ -166,7 +159,7 @@ const checkUsageLimit = (resourceType) => {
             error: `Client profile limit reached (${limits.clientProfiles} profiles)`,
             limit: limits.clientProfiles,
             current: count,
-            currentPlan: user.subscription.plan,
+            currentPlan: user.effectivePlan(),
             upgradeMessage: 'Upgrade to Pro plan for 50 profiles or Agency plan for unlimited'
           });
         }

@@ -136,7 +136,7 @@ router.post('/tickets', auth, async (req, res) => {
       user: user._id,
       email: user.email,
       name: user.name,
-      subscriptionPlan: user.subscription.plan,
+      subscriptionPlan: user.effectivePlan(),
       category,
       subject,
       message
@@ -298,7 +298,7 @@ router.patch('/tickets/:id/close', auth, async (req, res) => {
 router.get('/info', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    const plan = user.subscription.plan;
+    const plan = user.effectivePlan();
     
     const supportInfo = {
       plan,

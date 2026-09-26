@@ -2,10 +2,11 @@
 const Groq = require('groq-sdk');
 const axios = require('axios');
 
-// Initialize Groq
-const groq = new Groq({ 
-  apiKey: process.env.GROQ_API_KEY 
-});
+// Groq client, created on first use so the API still starts when only other
+// providers are configured. Explicit timeout so a slow provider can't stall a request.
+let groq = null;
+const groqClient = () =>
+  groq || (groq = new Groq({ apiKey: process.env.GROQ_API_KEY, timeout: 30000, maxRetries: 0 }));
 
 // ===============================
 // Provider 1: Groq (Primary - Free & Fast)
@@ -14,7 +15,7 @@ const generateWithGroq = async (prompt, isPriority = false) => {
   try {
     const maxTokens = isPriority ? 2500 : 2000;
     
-    const completion = await groq.chat.completions.create({
+    const completion = await groqClient().chat.completions.create({
       messages: [
         {
           role: 'system',

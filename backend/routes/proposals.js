@@ -7,6 +7,8 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { generateProposal, generateJSON } = require('../services/aiService');
 const ProposalAnalytics = require('../models/ProposalAnalytics');
+const { aiLimiter, publicLimiter } = require('../middleware/rateLimits');
+const { TONES, LENGTHS, STATUSES, checkString, firstError } = require('../utils/validate');
 
 // ===============================
 // AI Job-Post Analyzer
@@ -42,14 +44,31 @@ Experience: ${user.profile?.experience || 'Not specified'}
 
 Return only the JSON object.`;
 
-router.post('/analyze', auth, async (req, res) => {
+router.post('/analyze', auth, aiLimiter, async (req, res) => {
   try {
     const { jobDescription, jobTitle } = req.body;
-    if (!jobDescription || jobDescription.trim().length < 20) {
-      return res.status(400).json({ message: 'Please provide a job description (at least 20 characters).' });
+    const invalid = firstError(
+      checkString(jobDescription, 'jobDescription', { required: true, min: 20 }),
+      checkString(jobTitle, 'jobTitle')
+    );
+    if (invalid) {
+      return res.status(400).json({ message: invalid });
     }
 
     const user = await User.findById(req.user._id);
+
+    // Analyses are metered per plan, like proposals.
+    const canAnalyze = user.canAnalyze();
+    if (!canAnalyze.allowed) {
+      await user.save(); // persist a daily counter reset, if one happened
+      return res.status(403).json({
+        message: `You have used all ${canAnalyze.limit} job analyses for today on your plan.`,
+        reason: canAnalyze.reason,
+        limit: canAnalyze.limit,
+        currentPlan: user.effectivePlan(),
+      });
+    }
+
     const isPriorityAI = user.hasFeatureAccess('priorityAI');
 
     let analysis;
@@ -77,6 +96,9 @@ router.post('/analyze', auth, async (req, res) => {
       matchReason: analysis.matchReason || ''
     };
 
+    user.incrementAnalysis();
+    await user.save();
+
     res.json({ analysis: result });
   } catch (error) {
     console.error('Error analyzing job:', error.message);
@@ -87,12 +109,20 @@ router.post('/analyze', auth, async (req, res) => {
 // ===============================
 // Generate proposal
 // ===============================
-router.post('/generate', auth, async (req, res) => {
+router.post('/generate', auth, aiLimiter, async (req, res) => {
   try {
     const { jobTitle, jobDescription, clientName, budget, tone, length } = req.body;
 
-    if (!jobTitle || !jobDescription) {
-      return res.status(400).json({ message: 'Job title and description are required' });
+    const invalid = firstError(
+      checkString(jobTitle, 'jobTitle', { required: true }),
+      checkString(jobDescription, 'jobDescription', { required: true, min: 20 }),
+      checkString(clientName, 'clientName'),
+      checkString(budget, 'budget'),
+      tone && !TONES.includes(tone) ? 'tone is not valid' : null,
+      length && !LENGTHS.includes(length) ? 'length is not valid' : null
+    );
+    if (invalid) {
+      return res.status(400).json({ message: invalid });
     }
 
     // Load full user with methods
@@ -108,7 +138,7 @@ router.post('/generate', auth, async (req, res) => {
           : `Monthly limit of ${canGenerate.limit} proposals reached. Upgrade for unlimited access.`,
         reason: canGenerate.reason,
         limit: canGenerate.limit,
-        currentPlan: user.subscription.plan,
+        currentPlan: user.effectivePlan(),
         usage: {
           today: user.usage.proposalsToday,
           thisMonth: user.usage.proposalsThisMonth
@@ -166,12 +196,14 @@ Make it specific, natural, personalized and professional. Write as if you are ${
     // Use AI service with automatic fallback
     let generatedProposal;
     
+    let usedFallback = false;
     try {
       generatedProposal = await generateProposal(prompt, isPriorityAI);
     } catch (aiError) {
       console.error('All AI providers failed:', aiError.message);
-      // Use fallback template if all AI services fail
+      // Every AI provider failed: return a template, clearly flagged, and don't count it.
       generatedProposal = generateFallbackProposal(req.body, user);
+      usedFallback = true;
     }
 
     if (!generatedProposal) {
@@ -210,18 +242,21 @@ Make it specific, natural, personalized and professional. Write as if you are ${
 
     await analytics.save();
 
-    // Increment usage counters
-    user.incrementUsage();
-    await user.save();
+    // Increment usage counters (a template fallback is not charged against the quota)
+    if (!usedFallback) {
+      user.incrementUsage();
+      await user.save();
+    }
 
     res.json({
       id: proposal._id,
       proposal: generatedProposal,
+      isTemplate: usedFallback,
       createdAt: proposal.createdAt,
       usage: {
         today: user.usage.proposalsToday,
         thisMonth: user.usage.proposalsThisMonth,
-        plan: user.subscription.plan
+        plan: user.effectivePlan()
       }
     });
 
@@ -305,7 +340,7 @@ router.post('/:id/unshare', auth, async (req, res) => {
 // ===============================
 // PUBLIC: view a shared proposal (NO auth). Must precede GET /:id.
 // ===============================
-router.get('/public/:token', async (req, res) => {
+router.get('/public/:token', publicLimiter, async (req, res) => {
   try {
     const proposal = await Proposal.findOne({ shareToken: req.params.token, isPublic: true })
       .populate('user', 'name branding');
@@ -340,6 +375,13 @@ router.get('/public/:token', async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   try {
     const { editedProposal, status } = req.body;
+    const invalid = firstError(
+      checkString(editedProposal, 'editedProposal'),
+      status && !STATUSES.includes(status) ? 'status is not valid' : null
+    );
+    if (invalid) {
+      return res.status(400).json({ message: invalid });
+    }
 
     const proposal = await Proposal.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },

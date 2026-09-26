@@ -5,17 +5,17 @@ export const fr = {
     hero: {
       cta: "Commencer Gratuitement",
       login: "Se Connecter",
-      badge: "🚀 Adopté par plus de 10 000 freelances et agences",
+      badge: "✨ Accès anticipé ouvert",
       title1: "Remportez Plus de Contrats en",
       title2: "Secondes, Pas en Heures",
       subtitleA: "LunarBid aide les ",
       subtitleStrong: "freelances et les agences",
       subtitleB: " à créer des propositions personnalisées et gagnantes grâce à l'IA — plus vite, plus intelligemment, et adaptées à chaque opportunité.",
-      startTrial: "Essai Gratuit",
+      startTrial: "Commencer gratuitement",
       watchDemo: "Voir la Démo",
-      statUsers: "Utilisateurs Actifs",
-      statProposals: "Propositions Générées",
-      statRating: "Note des Utilisateurs"
+      statUsers: "Fournisseurs d'IA avec bascule automatique",
+      statProposals: "Formats d'export",
+      statRating: "Langues"
     },
     problem: {
       title: "Le Problème des Propositions",
@@ -57,8 +57,9 @@ export const fr = {
       perMonth: "par mois",
       mostPopular: "Le Plus Populaire",
       ctaFree: "Commencer Gratuitement",
-      ctaTrial: "Démarrer l'Essai",
+      ctaTrial: "Commencer",
       ctaSales: "Contacter les Ventes",
+      comingSoon: "Bientôt disponible",
       features: {
         free: ["5 propositions par jour", "Modèles de base", "Support par e-mail"],
         starter: ["50 propositions par mois", "Enregistrer les profils clients", "Tous les tons et styles", "Support standard"],
@@ -66,25 +67,18 @@ export const fr = {
         agency: ["Tout ce qui est dans Pro", "Collaboration d'équipe", "5 membres d'équipe", "Marque en marque blanche", "Accès API", "Support dédié"]
       }
     },
-    testimonials: {
-      title: "Apprécié par les Professionnels",
-      items: [
-        { role: "Designer Freelance", text: "LunarBid a réduit mon temps de proposition de 2 heures à 2 minutes. Révolutionnaire !" },
-        { role: "Propriétaire d'Agence", text: "Notre équipe soumet maintenant 5 fois plus de propositions. Le ROI a été immédiat." },
-        { role: "Développeur Full Stack", text: "Je remporte 60 % de contrats en plus. L'IA comprend ce que veulent les clients." }
-      ]
-    },
     finalCta: {
       title: "Prêt à Remporter Plus de Contrats ?",
-      subtitle: "Rejoignez plus de 10 000 freelances et agences qui utilisent LunarBid",
-      button: "Essai Gratuit →"
+      subtitle: "Commencez gratuitement. Passez à une offre payante quand LunarBid vous fait gagner du temps.",
+      button: "Commencer gratuitement →"
     },
     footer: {
       tagline: "Propositions Alimentées par l'IA",
       privacy: "Politique de Confidentialité",
       terms: "Conditions d'Utilisation",
       contact: "Contact",
-      rights: "© {{year}} LunarBid. Tous droits réservés. Propulsé par Moon Solutions."
+      rights: "© {{year}} LunarBid. Tous droits réservés. Un produit NWEE.",
+      refunds: "Politique de remboursement"
     }
   },
 
@@ -110,13 +104,13 @@ export const fr = {
     },
     register: {
       title: "Créer un Compte",
-      subtitle: "Rejoignez des milliers de freelances gagnant plus de propositions",
+      subtitle: "Créez des propositions sur mesure avec l'IA",
       fullName: "Nom Complet",
       emailAddress: "Adresse Email",
       email: "Email",
       password: "Mot de passe",
       confirmPassword: "Confirmer le Mot de passe",
-      agreeToTerms: "J'accepte les",
+      agreeToTerms: "En créant un compte, vous acceptez les",
       termsOfService: "Conditions d'Utilisation",
       and: "et",
       privacyPolicy: "Politique de Confidentialité",
@@ -133,6 +127,7 @@ export const fr = {
       emailPlaceholder: "vous@exemple.com",
       passwordPlaceholder: "••••••••",
       failed: "Échec de l'inscription",
+      passwordTooShort: "Le mot de passe doit contenir au moins 8 caractères",
       passwordMismatch: "Les mots de passe ne correspondent pas"
     },
     forgot: {
@@ -169,16 +164,16 @@ export const fr = {
       loginSubtitle: "Générez des propositions professionnelles en quelques secondes et remportez plus de contrats grâce à l'IA.",
       registerHeading1: "Commencez à Remporter Plus de",
       registerHeading2: "Contrats Aujourd'hui",
-      registerSubtitle: "Rejoignez des milliers de professionnels qui créent des propositions optimisées par l'IA instantanément.",
+      registerSubtitle: "Analysez les offres et rédigez des propositions sur mesure en quelques minutes.",
       features: [
         "Générez des propositions en moins de 60 secondes",
-        "Remportez 3 fois plus de contrats grâce au contenu IA",
+        "Adaptez chaque proposition à l'offre",
         "Suivez vos succès avec des analyses",
-        "Sécurité et confidentialité de niveau entreprise"
+        "Vos propositions restent privées, sauf si vous les partagez"
       ],
-      statUsers: "Utilisateurs Actifs",
-      statProposals: "Propositions",
-      statRating: "Note"
+      statUsers: "Fournisseurs d'IA",
+      statProposals: "Formats d'export",
+      statRating: "Langues"
     }
   },
 
@@ -199,6 +194,7 @@ export const fr = {
       aiReady: "IA Prête"
     },
     generate: {
+      templateNotice: "Nos fournisseurs d'IA sont saturés : voici un modèle de départ, pas un brouillon rédigé par l'IA. Il n'a pas été décompté de votre limite. Réessayez dans une minute.",
       title: "Générer une Proposition",
       jobTitle: "Titre du Poste",
       jobDescription: "Description du Poste",
@@ -377,6 +373,15 @@ export const fr = {
     },
     subscription: {
       yourSubscription: "Votre Abonnement",
+      manageBilling: "Gérer la facturation",
+      checkoutSuccess: "Paiement reçu, merci ! Votre offre est en cours d'activation.",
+      checkoutCancelled: "Le paiement a été annulé. Aucun montant n'a été débité.",
+      checkoutError: "Impossible de lancer le paiement. Veuillez réessayer.",
+      portalError: "Impossible d'ouvrir la gestion de la facturation. Veuillez réessayer.",
+      activating: "Activation de votre offre. Cela prend généralement quelques secondes...",
+      paymentIssue: "Un problème de paiement concerne votre offre {{plan}} : les fonctionnalités premium sont suspendues. Utilisez Gérer la facturation pour mettre à jour votre moyen de paiement.",
+      endsOn: "Votre offre prendra fin le {{date}}. Vous pouvez l'utiliser jusque-là, ou la réactiver depuis Gérer la facturation.",
+      comingSoon: "Bientôt disponible",
       cancelSubscription: "Annuler l'Abonnement",
       currentPlan: "Plan Actuel",
       cancelled: "Annulé",

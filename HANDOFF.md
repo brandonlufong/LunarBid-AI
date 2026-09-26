@@ -4,6 +4,11 @@
 
 **Last updated:** 2026-07-21 (session 1)
 
+## PHASE 1 LAUNCH BLOCKERS — DONE (2026-09-26)
+See `PHASE1_CHANGES.md` for what changed, the Stripe setup checklist and the P1 list that comes next.
+Key rules now in force: access comes only from `billing/access.js#effectivePlan` (Stripe-confirmed status);
+only the webhook changes plans; `npm test` in backend must stay green.
+
 ## How to resume (checklist)
 1. Read `.claude/skills/lunarbid-dev/SKILL.md` (architecture, conventions, full progress log).
 2. Ensure servers up:

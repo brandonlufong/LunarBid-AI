@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const { getPlan, getLimits, hasFeature } = require('../config/plans');
+const { STRIPE_STATUSES, effectivePlan } = require('../billing/access');
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -56,9 +57,11 @@ const userSchema = new mongoose.Schema({
       enum: ['free', 'starter', 'pro', 'agency'],
       default: 'free'
     },
+    // Mirrors the Stripe subscription status, set only by the webhook.
+    // 'cancelled' and 'expired' are legacy values kept so existing records still validate.
     status: {
       type: String,
-      enum: ['active', 'cancelled', 'expired', 'incomplete', 'past_due', 'trialing', 'unpaid'],
+      enum: [...STRIPE_STATUSES, 'cancelled', 'expired'],
       default: 'active'
     },
     startDate: { type: Date },
@@ -66,7 +69,9 @@ const userSchema = new mongoose.Schema({
     cancelAtPeriodEnd: { type: Boolean, default: false },
     stripeCustomerId: { type: String },
     stripeSubscriptionId: { type: String },
-    stripePriceId: { type: String }
+    stripePriceId: { type: String },
+    // Time of the last Stripe state applied, so older webhook events never overwrite newer ones.
+    syncedAt: { type: Date }
   },
 
   // Usage tracking
@@ -75,7 +80,9 @@ const userSchema = new mongoose.Schema({
     proposalsThisMonth: { type: Number, default: 0 },
     lastResetDate: { type: Date, default: Date.now },
     totalProposals: { type: Number, default: 0 },
-    monthlyResetDate: { type: Date, default: Date.now }
+    monthlyResetDate: { type: Date, default: Date.now },
+    analysesToday: { type: Number, default: 0 },
+    analysisResetDate: { type: Date, default: Date.now }
   },
 
   // Custom Branding (Pro & Agency)
@@ -131,7 +138,7 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 // Also resets daily/monthly counters when the period rolls over.
 // ===============================
 userSchema.methods.canGenerateProposal = function () {
-  const { dailyProposals, monthlyProposals } = getLimits(this.subscription.plan);
+  const { dailyProposals, monthlyProposals } = getLimits(effectivePlan(this));
 
   const now = new Date();
 
@@ -169,20 +176,51 @@ userSchema.methods.incrementUsage = function () {
   this.usage.totalProposals += 1;
 };
 
+// ===============================
+// AI job-post analyses: metered per day, like proposals.
+// ===============================
+userSchema.methods.canAnalyze = function () {
+  const { dailyAnalyses } = getLimits(effectivePlan(this));
+  const now = new Date();
+  const last = new Date(this.usage.analysisResetDate || 0);
+  if (now.toDateString() !== last.toDateString()) {
+    this.usage.analysesToday = 0;
+    this.usage.analysisResetDate = now;
+  }
+  if (dailyAnalyses != null && (this.usage.analysesToday || 0) >= dailyAnalyses) {
+    return { allowed: false, reason: 'daily_analysis_limit', limit: dailyAnalyses };
+  }
+  return { allowed: true };
+};
+
+userSchema.methods.incrementAnalysis = function () {
+  this.usage.analysesToday = (this.usage.analysesToday || 0) + 1;
+};
+
+// All gating uses the effective plan: a paid plan only counts while Stripe reports
+// the subscription as active, trialing or past_due (see billing/access.js).
+userSchema.methods.effectivePlan = function () {
+  return effectivePlan(this);
+};
+
 userSchema.methods.hasFeatureAccess = function (featureName) {
-  return hasFeature(this.subscription.plan, featureName);
+  return hasFeature(effectivePlan(this), featureName);
 };
 
 userSchema.methods.getPlanLimits = function () {
-  return getLimits(this.subscription.plan);
+  return getLimits(effectivePlan(this));
 };
 
 userSchema.methods.getPlanConfig = function () {
-  return getPlan(this.subscription.plan);
+  return getPlan(effectivePlan(this));
 };
 
 // Indexes (email index comes from `unique: true` above)
 userSchema.index({ 'subscription.plan': 1 });
 userSchema.index({ 'team.teamId': 1 });
+// Webhook lookups
+userSchema.index({ 'subscription.stripeCustomerId': 1 }, { sparse: true });
+userSchema.index({ 'subscription.stripeSubscriptionId': 1 }, { sparse: true });
+userSchema.index({ resetPasswordToken: 1 }, { sparse: true });
 
 module.exports = mongoose.model('User', userSchema);

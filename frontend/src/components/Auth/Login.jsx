@@ -163,9 +163,9 @@ const Login = ({ onSwitch }) => {
               {/* Stats */}
               <div className="grid grid-cols-3 gap-4 pt-6">
                 {[
-                  { value: '10K+', label: t('auth.side.statUsers') },
-                  { value: '500K+', label: t('auth.side.statProposals') },
-                  { value: '4.9/5', label: t('auth.side.statRating') }
+                  { value: '5', label: t('auth.side.statUsers') },
+                  { value: '4', label: t('auth.side.statProposals') },
+                  { value: '2', label: t('auth.side.statRating') }
                 ].map((stat, i) => (
                   <div key={i} className="text-center p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
                     <div className="text-3xl font-black text-white mb-1">{stat.value}</div>

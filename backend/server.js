@@ -1,40 +1,30 @@
+// backend/server.js
 require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+require('./instrument'); // error reporting first, so it can see everything below
+const log = require('./utils/logger');
+const { validateEnv } = require('./config/env');
+
+validateEnv(log);
+
+const mongoose = require('mongoose');
 const connectDB = require('./config/db');
-
-const app = express();
-
-// Connect to MongoDB
-connectDB();
-
-// Middleware
-app.use(cors());
-
-// ========================================
-// CRITICAL: Webhook route MUST be BEFORE express.json()
-// This is because Stripe needs the raw body for signature verification
-// ========================================
-app.use('/api/subscription/webhook', 
-  express.raw({ type: 'application/json' }),
-  require('./routes/subscription')
-);
-
-app.use(express.json());
-
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/profile', require('./routes/profile'));
-app.use('/api/proposals', require('./routes/proposals'));
-app.use('/api/subscription', require('./routes/subscription'));
-app.use('/api/branding', require('./routes/branding'));
-app.use('/api/client-profiles', require('./routes/clientProfiles'));
-app.use('/api/analytics', require('./routes/analytics'));
-app.use('/api/support', require('./routes/support'));
+const app = require('./app');
 
 const PORT = process.env.PORT || 5000;
 
+(async () => {
+  await connectDB();
+  const server = app.listen(PORT, () => log.info(`LunarBid API listening on port ${PORT}`));
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+  // Graceful shutdown: finish in-flight requests, then close the database.
+  const shutdown = (signal) => {
+    log.info(`${signal} received, shutting down`);
+    server.close(async () => {
+      await mongoose.disconnect().catch(() => {});
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(1), 10000).unref();
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+})();

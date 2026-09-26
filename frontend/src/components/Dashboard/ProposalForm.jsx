@@ -87,6 +87,10 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
       setProposal(res.data.proposal);
       setEditedProposal(res.data.proposal);
       setProposalId(res.data.id);
+      // All AI providers failed and a template was returned: say so (it was not counted).
+      if (res.data.isTemplate) {
+        toast.info(t('dashboard.generate.templateNotice'));
+      }
       // Update usage info
       if (res.data.usage) {
         setUsageInfo(prev => ({

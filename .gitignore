@@ -1,3 +1,12 @@
 backend/.env
 frontend/.env
 .env
+
+# Dependencies are installed from package-lock.json, never committed
+node_modules/
+
+# Build output
+dist/
+
+# Uploaded files (stored locally in development)
+backend/uploads/

@@ -6,6 +6,12 @@ const axios = require('axios');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { sendMail, isConfigured: emailConfigured } = require('../services/mailer');
+const { authLimiter, signupLimiter, passwordResetLimiter } = require('../middleware/rateLimits');
+const log = require('../utils/logger');
+
+const MIN_PASSWORD = 8;
+const normalizeEmail = (email) => (typeof email === 'string' ? email.toLowerCase().trim() : '');
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5174';
 const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
@@ -15,17 +21,23 @@ const publicUser = (user) => ({ id: user._id, name: user.name, email: user.email
 const hashToken = (raw) => crypto.createHash('sha256').update(raw).digest('hex');
 
 // Register
-router.post('/register', async (req, res) => {
+router.post('/register', signupLimiter, async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, password } = req.body;
+    const email = normalizeEmail(req.body.email);
 
     // Validation
-    if (!name || !email || !password) {
+    if (!name || !email || !password || typeof name !== 'string' || typeof password !== 'string') {
       return res.status(400).json({ message: 'Please provide all required fields' });
     }
-
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    if (!EMAIL_RE.test(email) || email.length > 254) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
+    }
+    if (name.trim().length > 100) {
+      return res.status(400).json({ message: 'Name is too long' });
+    }
+    if (password.length < MIN_PASSWORD || password.length > 128) {
+      return res.status(400).json({ message: `Password must be at least ${MIN_PASSWORD} characters` });
     }
 
     // Check if user exists
@@ -35,13 +47,11 @@ router.post('/register', async (req, res) => {
     }
 
     // Create user
-    const user = new User({ name, email, password });
+    const user = new User({ name: name.trim(), email, password });
     await user.save();
 
     // Generate token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '30d'
-    });
+    const token = signToken(user);
 
     res.status(201).json({
       token,
@@ -59,18 +69,24 @@ router.post('/register', async (req, res) => {
 });
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const email = normalizeEmail(req.body.email);
 
     // Validation
-    if (!email || !password) {
+    if (!email || !password || typeof password !== 'string') {
       return res.status(400).json({ message: 'Please provide email and password' });
     }
 
     // Check user
     const user = await User.findOne({ email });
     if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // Social-only accounts have no password
+    if (!user.password) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
@@ -81,9 +97,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Generate token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '30d'
-    });
+    const token = signToken(user);
 
     res.json({
       token,
@@ -103,7 +117,7 @@ router.post('/login', async (req, res) => {
 // ===============================
 // Forgot password — issue a reset token (emailed, or returned in dev)
 // ===============================
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: 'Please provide your email' });
@@ -133,9 +147,14 @@ router.post('/forgot-password', async (req, res) => {
 
     const result = await sendMail({ to: user.email, subject: 'Reset your LunarBid password', html, text: `Reset your password: ${resetLink}` });
 
-    // In dev (email not configured) return the link so the flow is testable.
+    // The reset link is NEVER returned to the caller: anyone could request it for any
+    // email address. When email can't be sent, log the failure; in development only,
+    // print the link to the server console so the flow can still be tested locally.
     if (!result.sent) {
-      return res.json({ ...generic, devResetLink: resetLink, emailConfigured: emailConfigured() });
+      log.error({ reason: result.reason }, 'password reset email not sent');
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[dev] Password reset link for ${user.email}: ${resetLink}`);
+      }
     }
     return res.json(generic);
   } catch (error) {
@@ -147,11 +166,13 @@ router.post('/forgot-password', async (req, res) => {
 // ===============================
 // Reset password — consume the token, set a new password
 // ===============================
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', passwordResetLimiter, async (req, res) => {
   try {
     const { token, password } = req.body;
     if (!token || !password) return res.status(400).json({ message: 'Token and new password are required' });
-    if (password.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    if (typeof password !== 'string' || password.length < MIN_PASSWORD || password.length > 128) {
+      return res.status(400).json({ message: `Password must be at least ${MIN_PASSWORD} characters` });
+    }
 
     const user = await User.findOne({
       resetPasswordToken: hashToken(token),

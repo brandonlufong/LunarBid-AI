@@ -6,22 +6,34 @@ const nodemailer = require('nodemailer');
 
 const PLACEHOLDERS = ['your_app_password', 'your_email_password', '', undefined, null];
 
+// Preferred: any transactional provider over SMTP (Postmark, Resend, Amazon SES, Mailgun...)
+//   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, EMAIL_FROM
+// Legacy fallback: Gmail via SUPPORT_EMAIL + SUPPORT_EMAIL_PASSWORD (not recommended for production).
+const smtpConfigured = () => !!process.env.SMTP_HOST && !PLACEHOLDERS.includes(process.env.SMTP_PASSWORD);
+
 const isConfigured = () => {
+  if (smtpConfigured()) return true;
   const pass = process.env.SUPPORT_EMAIL_PASSWORD;
   const user = process.env.SUPPORT_EMAIL;
   return !!user && !!pass && !PLACEHOLDERS.includes(pass) && !user.includes('your_');
 };
 
+const fromAddress = () => process.env.EMAIL_FROM || `"LunarBid" <${process.env.SUPPORT_EMAIL}>`;
+
 let transporter = null;
 const getTransporter = () => {
   if (transporter) return transporter;
-  transporter = nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || 'gmail',
-    auth: {
-      user: process.env.SUPPORT_EMAIL,
-      pass: process.env.SUPPORT_EMAIL_PASSWORD,
-    },
-  });
+  transporter = smtpConfigured()
+    ? nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT || 587),
+        secure: Number(process.env.SMTP_PORT) === 465,
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD },
+      })
+    : nodemailer.createTransport({
+        service: process.env.EMAIL_SERVICE || 'gmail',
+        auth: { user: process.env.SUPPORT_EMAIL, pass: process.env.SUPPORT_EMAIL_PASSWORD },
+      });
   return transporter;
 };
 
@@ -30,7 +42,7 @@ const sendMail = async ({ to, subject, html, text }) => {
   if (!isConfigured()) return { sent: false, reason: 'not_configured' };
   try {
     await getTransporter().sendMail({
-      from: `"LunarBid" <${process.env.SUPPORT_EMAIL}>`,
+      from: fromAddress(),
       to,
       subject,
       text,

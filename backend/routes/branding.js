@@ -51,7 +51,7 @@ router.get('/', auth, checkFeatureAccess('customBranding'), async (req, res) => 
     
     res.json({
       branding: user.branding,
-      plan: user.subscription.plan,
+      plan: user.effectivePlan(),
       whiteLabel: user.hasFeatureAccess('whiteLabel')
     });
   } catch (error) {

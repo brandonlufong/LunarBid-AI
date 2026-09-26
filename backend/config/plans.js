@@ -18,7 +18,9 @@ const PLANS = {
     interval: 'forever',
     tagline: 'Perfect for getting started',
     stripePriceEnv: null,
+    purchasable: false,
     limits: {
+      dailyAnalyses: 10,              // AI job-post analyses per day
       dailyProposals: 5,
       monthlyProposals: null,
       clientProfiles: 0,
@@ -46,7 +48,9 @@ const PLANS = {
     interval: 'month',
     tagline: 'For freelancers getting serious',
     stripePriceEnv: 'STRIPE_STARTER_PRICE_ID',
+    purchasable: true,
     limits: {
+      dailyAnalyses: 40,
       dailyProposals: null,
       monthlyProposals: 50,
       clientProfiles: 10,
@@ -75,7 +79,9 @@ const PLANS = {
     tagline: 'For growing freelancers & pros',
     popular: true,
     stripePriceEnv: 'STRIPE_PRO_PRICE_ID',
+    purchasable: true,
     limits: {
+      dailyAnalyses: 150,
       dailyProposals: null,
       monthlyProposals: null,          // unlimited
       clientProfiles: 50,
@@ -103,7 +109,12 @@ const PLANS = {
     interval: 'month',
     tagline: 'For agencies & teams',
     stripePriceEnv: 'STRIPE_AGENCY_PRICE_ID',
+    // Not for sale until team collaboration, white-label and API access are built.
+    // Flip to true only when those features ship; checkout refuses non-purchasable plans.
+    purchasable: false,
+    comingSoon: true,
     limits: {
+      dailyAnalyses: 300,
       dailyProposals: null,
       monthlyProposals: null,          // unlimited
       clientProfiles: null,            // unlimited
@@ -138,6 +149,12 @@ const getStripePriceId = (planId) => {
   return env ? process.env[env] : null;
 };
 
+// Stripe price id -> planId (used by the webhook to decide which plan a subscription grants)
+const getPlanByPriceId = (priceId) =>
+  PAID_PLANS.find((planId) => priceId && getStripePriceId(planId) === priceId) || null;
+
+const isPurchasable = (planId) => !!PLANS[planId]?.purchasable && !!getStripePriceId(planId);
+
 // Public-safe representation for the frontend / landing page
 const getPublicPlans = () =>
   PLAN_ORDER.map((id) => {
@@ -149,6 +166,8 @@ const getPublicPlans = () =>
       interval: p.interval,
       tagline: p.tagline,
       popular: !!p.popular,
+      purchasable: !!p.purchasable,
+      comingSoon: !!p.comingSoon,
       limits: p.limits,
       features: p.features,
     };
@@ -162,5 +181,7 @@ module.exports = {
   getLimits,
   hasFeature,
   getStripePriceId,
+  getPlanByPriceId,
+  isPurchasable,
   getPublicPlans,
 };

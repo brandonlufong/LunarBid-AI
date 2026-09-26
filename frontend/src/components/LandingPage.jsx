@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Check, Sparkles, Moon, Zap, Target, Clock, Users, TrendingUp, Award, Shield, ArrowRight, Star, Crown, Building2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Check, Sparkles, Moon, Zap, Target, Clock, Users, TrendingUp, Award, Shield, ArrowRight, Crown, Building2 } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useLanguage } from '../locales/LanguageContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 import LanguageSelector from './UI/LanguageSelector';
@@ -189,9 +189,9 @@ const LandingPage = () => {
             className="mt-16 grid grid-cols-3 gap-8 max-w-3xl mx-auto"
           >
             {[
-              { value: '10K+', label: t('landing.hero.statUsers') },
-              { value: '500K+', label: t('landing.hero.statProposals') },
-              { value: '4.9/5', label: t('landing.hero.statRating') }
+              { value: '5', label: t('landing.hero.statUsers') },
+              { value: '4', label: t('landing.hero.statProposals') },
+              { value: '2', label: t('landing.hero.statRating') }
             ].map((stat, i) => (
               <div key={i} className="text-center">
                 <div className={`text-3xl md:text-4xl font-black mb-2 ${
@@ -429,7 +429,7 @@ const LandingPage = () => {
                 { id: 'free', name: 'Free', price: '$0', popular: false, icon: Zap, color: 'from-gray-500 to-gray-600', cta: t('landing.pricing.ctaFree') },
                 { id: 'starter', name: 'Starter', price: '$12', popular: false, icon: TrendingUp, color: 'from-blue-500 to-indigo-600', cta: t('landing.pricing.ctaTrial') },
                 { id: 'pro', name: 'Pro', price: '$19', popular: true, icon: Crown, color: 'from-purple-500 to-pink-600', cta: t('landing.pricing.ctaTrial') },
-                { id: 'agency', name: 'Agency', price: '$49', popular: false, icon: Building2, color: 'from-emerald-500 to-teal-600', cta: t('landing.pricing.ctaSales') }
+                { id: 'agency', name: 'Agency', price: '$49', popular: false, icon: Building2, color: 'from-emerald-500 to-teal-600', cta: t('landing.pricing.comingSoon'), comingSoon: true }
               ].map((plan, i) => {
                 const planFeatures = t('landing.pricing.features')[plan.id];
                 const planPeriod = plan.id === 'free' ? t('landing.pricing.forever') : t('landing.pricing.perMonth');
@@ -476,8 +476,9 @@ const LandingPage = () => {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => navigate('/register')}
-                      className={`w-full py-3 rounded-xl font-bold transition-all ${
+                      onClick={() => !plan.comingSoon && navigate('/register')}
+                      disabled={plan.comingSoon}
+                      className={`w-full py-3 rounded-xl font-bold transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
                         plan.popular
                           ? 'bg-white text-indigo-600 hover:bg-gray-100'
                           : 'bg-indigo-600 hover:bg-indigo-700'
@@ -490,52 +491,6 @@ const LandingPage = () => {
               })}
             </div>
           </motion.div>
-        </div>
-      </section>
-
-      {/* TESTIMONIALS */}
-      <section className={`px-6 py-24 border-y transition-colors duration-500 ${
-        darkMode ? 'bg-white/[0.02] border-white/5' : 'bg-slate-50 border-slate-100'
-      }`}>
-        <div className="max-w-6xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl md:text-5xl font-black text-center mb-16"
-          >
-            {t('landing.testimonials.title')}
-          </motion.h2>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { name: 'Sarah Johnson' },
-              { name: 'Mike Chen' },
-              { name: 'Emma Davis' }
-            ].map((testimonial, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className={`p-6 border rounded-2xl transition-colors ${
-                  darkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'
-                }`}
-              >
-                <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, j) => (
-                    <Star key={j} className="w-5 h-5 fill-accent-400 text-accent-400" />
-                  ))}
-                </div>
-                <p className={`text-lg mb-4 italic ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>"{t('landing.testimonials.items')[i].text}"</p>
-                <div>
-                  <div className={`font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{testimonial.name}</div>
-                  <div className={`text-sm ${darkMode ? 'text-brand-300' : 'text-brand-600'}`}>{t('landing.testimonials.items')[i].role}</div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -578,9 +533,10 @@ const LandingPage = () => {
               </div>
             </div>
             <div className="flex gap-8 text-sm">
-              <a href="#" className="hover:text-indigo-400 transition-colors">{t('landing.footer.privacy')}</a>
-              <a href="#" className="hover:text-indigo-400 transition-colors">{t('landing.footer.terms')}</a>
-              <a href="#" className="hover:text-indigo-400 transition-colors">{t('landing.footer.contact')}</a>
+              <Link to="/privacy" className="hover:text-indigo-400 transition-colors">{t('landing.footer.privacy')}</Link>
+              <Link to="/terms" className="hover:text-indigo-400 transition-colors">{t('landing.footer.terms')}</Link>
+              <Link to="/refunds" className="hover:text-indigo-400 transition-colors">{t('landing.footer.refunds')}</Link>
+              <a href="mailto:support@lunarbid.ai" className="hover:text-indigo-400 transition-colors">{t('landing.footer.contact')}</a>
             </div>
           </div>
           <div className="mt-8 text-center text-sm text-indigo-200">

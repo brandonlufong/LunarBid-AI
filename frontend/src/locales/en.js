@@ -5,17 +5,17 @@ export const en = {
     hero: {
       cta: "Get Started Free",
       login: "Sign In",
-      badge: "🚀 Trusted by 10,000+ Freelancers & Agencies",
+      badge: "✨ Now in early access",
       title1: "Win More Bids in",
       title2: "Seconds, Not Hours",
       subtitleA: "LunarBid helps ",
       subtitleStrong: "freelancers and agencies",
       subtitleB: " create personalized, winning proposals using AI — faster, smarter, and tailored to every opportunity.",
-      startTrial: "Start Free Trial",
+      startTrial: "Get Started Free",
       watchDemo: "Watch Demo",
-      statUsers: "Active Users",
-      statProposals: "Proposals Generated",
-      statRating: "User Rating"
+      statUsers: "AI providers with automatic fallback",
+      statProposals: "Export formats",
+      statRating: "Languages"
     },
     problem: {
       title: "The Proposal Problem",
@@ -57,8 +57,9 @@ export const en = {
       perMonth: "per month",
       mostPopular: "Most Popular",
       ctaFree: "Start Free",
-      ctaTrial: "Start Trial",
+      ctaTrial: "Get Started",
       ctaSales: "Contact Sales",
+      comingSoon: "Coming Soon",
       features: {
         free: ["5 proposals per day", "Basic templates", "Email support"],
         starter: ["50 proposals per month", "Save client profiles", "All tones & styles", "Standard support"],
@@ -66,25 +67,18 @@ export const en = {
         agency: ["Everything in Pro", "Team collaboration", "5 team members", "White-label branding", "API access", "Dedicated support"]
       }
     },
-    testimonials: {
-      title: "Loved by Professionals",
-      items: [
-        { role: "Freelance Designer", text: "LunarBid cut my proposal time from 2 hours to 2 minutes. Game changer!" },
-        { role: "Agency Owner", text: "Our team now submits 5x more proposals. ROI was immediate." },
-        { role: "Full Stack Developer", text: "I win 60% more bids now. The AI understands what clients want." }
-      ]
-    },
     finalCta: {
       title: "Ready to Win More Bids?",
-      subtitle: "Join 10,000+ freelancers and agencies using LunarBid",
-      button: "Start Free Trial →"
+      subtitle: "Start free. Upgrade when LunarBid is saving you time.",
+      button: "Get Started Free →"
     },
     footer: {
       tagline: "AI-Powered Proposals",
       privacy: "Privacy Policy",
       terms: "Terms of Service",
       contact: "Contact",
-      rights: "© {{year}} LunarBid. All rights reserved. Powered by Moon Solutions."
+      rights: "© {{year}} LunarBid. All rights reserved. A product by NWEE.",
+      refunds: "Refund Policy"
     }
   },
 
@@ -110,13 +104,13 @@ export const en = {
     },
     register: {
       title: "Create Account",
-      subtitle: "Join thousands of freelancers winning more proposals",
+      subtitle: "Create tailored proposals with AI",
       fullName: "Full Name",
       emailAddress: "Email Address",
       email: "Email",
       password: "Password",
       confirmPassword: "Confirm Password",
-      agreeToTerms: "I agree to the",
+      agreeToTerms: "By creating an account, you agree to the",
       termsOfService: "Terms of Service",
       and: "and",
       privacyPolicy: "Privacy Policy",
@@ -133,6 +127,7 @@ export const en = {
       emailPlaceholder: "you@example.com",
       passwordPlaceholder: "••••••••",
       failed: "Registration failed",
+      passwordTooShort: "Password must be at least 8 characters",
       passwordMismatch: "Passwords do not match"
     },
     forgot: {
@@ -169,16 +164,16 @@ export const en = {
       loginSubtitle: "Generate professional proposals in seconds and win more bids with AI.",
       registerHeading1: "Start Winning More",
       registerHeading2: "Bids Today",
-      registerSubtitle: "Join thousands of professionals creating AI-powered proposals instantly.",
+      registerSubtitle: "Analyze job posts and draft tailored proposals in minutes.",
       features: [
         "Generate proposals in under 60 seconds",
-        "Win 3x more bids with AI-powered content",
+        "Tailor every proposal to the job post",
         "Track your success with analytics",
-        "Enterprise-grade security & privacy"
+        "Your proposals stay private unless you share them"
       ],
-      statUsers: "Active Users",
-      statProposals: "Proposals",
-      statRating: "Rating"
+      statUsers: "AI providers",
+      statProposals: "Export formats",
+      statRating: "Languages"
     }
   },
 
@@ -199,6 +194,7 @@ export const en = {
       aiReady: "AI Ready"
     },
     generate: {
+      templateNotice: "Our AI providers are busy, so this is a starting template, not an AI draft. It was not counted against your limit. Try generating again in a minute.",
       title: "Generate Proposal",
       jobTitle: "Job Title",
       jobDescription: "Job Description",
@@ -377,6 +373,15 @@ export const en = {
     },
     subscription: {
       yourSubscription: "Your Subscription",
+      manageBilling: "Manage billing",
+      checkoutSuccess: "Payment received, thank you! Your plan is being activated.",
+      checkoutCancelled: "Checkout was cancelled. You have not been charged.",
+      checkoutError: "We couldn't start checkout. Please try again.",
+      portalError: "We couldn't open billing management. Please try again.",
+      activating: "Activating your plan. This usually takes a few seconds...",
+      paymentIssue: "There is a problem with the payment for your {{plan}} plan, so premium features are paused. Use Manage billing to update your payment method.",
+      endsOn: "Your plan is set to end on {{date}}. You can keep using it until then, or resume it from Manage billing.",
+      comingSoon: "Coming soon",
       cancelSubscription: "Cancel Subscription",
       currentPlan: "Current Plan",
       cancelled: "Cancelled",
