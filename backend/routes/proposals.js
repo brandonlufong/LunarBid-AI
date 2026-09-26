@@ -5,46 +5,26 @@ const router = express.Router();
 const Proposal = require('../models/Proposal');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const requireVerifiedEmail = require('../middleware/requireVerifiedEmail');
 const { generateProposal, generateJSON } = require('../services/aiService');
+const { buildProposalPrompt, buildAnalysisPrompt, buildTemplateProposal } = require('../services/prompts');
+const { reserve } = require('../services/usage');
 const ProposalAnalytics = require('../models/ProposalAnalytics');
-const { aiLimiter, publicLimiter } = require('../middleware/rateLimits');
+const { aiLimiter, publicLimiter, sendLimiter } = require('../middleware/rateLimits');
+const { sendMail, isConfigured: mailerConfigured } = require('../services/mailer');
+const { proposalEmail } = require('../services/emails');
+const { displayUrl } = require('../services/storage');
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const { TONES, LENGTHS, STATUSES, checkString, firstError } = require('../utils/validate');
 
 // ===============================
 // AI Job-Post Analyzer
 // Extracts structured insight from a job description to help the user win.
 // ===============================
-const analyzePrompt = (jobDescription, jobTitle, user) => `You are an expert freelance bidding strategist. Analyze the following job post and return ONLY a JSON object (no prose, no markdown) matching this exact TypeScript shape:
 
-{
-  "summary": string,                 // 1-2 sentence plain-language summary of what the client wants
-  "keyRequirements": string[],       // 3-6 concrete must-have requirements
-  "suggestedSkills": string[],       // 3-8 skills/technologies to emphasize
-  "clientPainPoints": string[],      // 2-4 underlying problems the client is really trying to solve
-  "suggestedTone": "formal" | "friendly" | "persuasive",
-  "suggestedLength": "short" | "medium" | "detailed",
-  "complexity": "low" | "medium" | "high",
-  "estimatedBudgetRange": string,    // e.g. "$800 - $1,500" (infer from scope if none given)
-  "redFlags": string[],              // 0-4 warning signs (vague scope, low budget, scope creep risk...) — [] if none
-  "winningAngles": string[],         // 2-4 specific angles/hooks to stand out from other bidders
-  "matchScore": number,              // 0-100, how well this freelancer's profile fits the job
-  "matchReason": string              // 1 sentence explaining the score
-}
 
-Job Title: ${jobTitle || '(not provided)'}
-Job Description:
-"""
-${jobDescription}
-"""
-
-Freelancer profile (for matchScore):
-Role: ${user.profile?.role || 'General freelancer'}
-Skills: ${user.profile?.skills || 'Not specified'}
-Experience: ${user.profile?.experience || 'Not specified'}
-
-Return only the JSON object.`;
-
-router.post('/analyze', auth, aiLimiter, async (req, res) => {
+router.post('/analyze', auth, requireVerifiedEmail, aiLimiter, async (req, res) => {
   try {
     const { jobDescription, jobTitle } = req.body;
     const invalid = firstError(
@@ -57,10 +37,9 @@ router.post('/analyze', auth, aiLimiter, async (req, res) => {
 
     const user = await User.findById(req.user._id);
 
-    // Analyses are metered per plan, like proposals.
-    const canAnalyze = user.canAnalyze();
+    // Analyses are metered per plan; the quota is reserved atomically before the AI call.
+    const canAnalyze = await reserve(user, 'analysis');
     if (!canAnalyze.allowed) {
-      await user.save(); // persist a daily counter reset, if one happened
       return res.status(403).json({
         message: `You have used all ${canAnalyze.limit} job analyses for today on your plan.`,
         reason: canAnalyze.reason,
@@ -73,10 +52,11 @@ router.post('/analyze', auth, aiLimiter, async (req, res) => {
 
     let analysis;
     try {
-      analysis = await generateJSON(analyzePrompt(jobDescription, jobTitle, user), isPriorityAI);
+      analysis = await generateJSON(buildAnalysisPrompt({ jobTitle, jobDescription, profile: user.profile }), isPriorityAI);
     } catch (aiError) {
       console.error('Analyze failed:', aiError.message);
-      return res.status(502).json({ message: 'Could not analyze this job post. Please try again.' });
+      await canAnalyze.release();
+      return res.status(503).json({ message: 'Job analysis is temporarily unavailable. Please try again in a minute. This attempt was not counted.' });
     }
 
     // Normalize / clamp
@@ -92,12 +72,12 @@ router.post('/analyze', auth, aiLimiter, async (req, res) => {
       estimatedBudgetRange: analysis.estimatedBudgetRange || 'N/A',
       redFlags: Array.isArray(analysis.redFlags) ? analysis.redFlags.slice(0, 5) : [],
       winningAngles: Array.isArray(analysis.winningAngles) ? analysis.winningAngles.slice(0, 5) : [],
-      matchScore: Math.max(0, Math.min(100, Number(analysis.matchScore) || 0)),
+      // null when the user has no profile to match against (shown as "add your profile")
+      matchScore: analysis.matchScore == null || !isFinite(Number(analysis.matchScore))
+        ? null
+        : Math.max(0, Math.min(100, Math.round(Number(analysis.matchScore)))),
       matchReason: analysis.matchReason || ''
     };
-
-    user.incrementAnalysis();
-    await user.save();
 
     res.json({ analysis: result });
   } catch (error) {
@@ -109,7 +89,7 @@ router.post('/analyze', auth, aiLimiter, async (req, res) => {
 // ===============================
 // Generate proposal
 // ===============================
-router.post('/generate', auth, aiLimiter, async (req, res) => {
+router.post('/generate', auth, requireVerifiedEmail, aiLimiter, async (req, res) => {
   try {
     const { jobTitle, jobDescription, clientName, budget, tone, length } = req.body;
 
@@ -128,8 +108,8 @@ router.post('/generate', auth, aiLimiter, async (req, res) => {
     // Load full user with methods
     const user = await User.findById(req.user._id);
     
-    // Check if user can generate proposal
-    const canGenerate = user.canGenerateProposal();
+    // Reserve one proposal from the plan's quota (atomic, so simultaneous requests can't exceed it)
+    const canGenerate = await reserve(user, 'proposal');
     
     if (!canGenerate.allowed) {
       return res.status(403).json({ 
@@ -146,52 +126,14 @@ router.post('/generate', auth, aiLimiter, async (req, res) => {
       });
     }
 
-    const toneDescriptions = {
-      formal: 'highly professional and formal, suitable for corporate clients',
-      friendly: 'warm and approachable while remaining professional',
-      persuasive: 'compelling and results-focused, highlighting unique value propositions'
-    };
-
-    const lengthInstructions = {
-      short: 'Create a concise 100-200 word proposal',
-      medium: 'Create a comprehensive 200-400 word proposal',
-      detailed: 'Create an in-depth 400-1000 word proposal with detailed roadmap'
-    };
-
     // Determine AI priority based on plan feature (pro + agency)
     const isPriorityAI = user.hasFeatureAccess('priorityAI');
 
-    const prompt = `Generate a ${isPriorityAI ? 'comprehensive and detailed' : 'professional'} freelance proposal:
-
-Job Title: ${jobTitle}
-Job Description: ${jobDescription}
-Client Name: ${clientName || 'Hiring Manager'}
-Budget: ${budget || 'To be discussed'}
-
-Freelancer Profile:
-Name: ${user.name}
-Role: ${user.profile?.role || 'Professional Freelancer'}
-Experience: ${user.profile?.experience || 'Professional freelancer with proven track record'}
-Skills: ${user.profile?.skills || 'Versatile and skilled professional'}
-Hourly Rate: ${user.profile?.hourlyRate || 'Competitive rates'}
-Portfolio: ${user.profile?.portfolio || 'Available upon request'}
-${user.profile?.bio ? `Bio: ${user.profile.bio}` : ''}
-
-Tone: ${toneDescriptions[tone] || toneDescriptions.friendly}
-Length: ${lengthInstructions[length] || lengthInstructions.medium}
-Quality: ${isPriorityAI ? 'Premium - include specific examples and detailed approach' : 'Professional'}
-
-Create a proposal that:
-1. Opens with a personalized greeting (No "Dear Sir/Madam")
-2. Shows clear understanding of the client's needs with natural human tone
-3. Highlights relevant experience and skills
-4. Avoids generic phrases, buzzwords, clichés, emojis, AI disclaimers
-5. Outlines your approach and methodology
-6. Mentions timeline and availability
-7. Includes a clear value proposition
-8. Ends with a strong call-to-action
-
-Make it specific, natural, personalized and professional. Write as if you are ${user.name}.`;
+    // Only the profile details the user entered are used; nothing is invented.
+    const prompt = buildProposalPrompt({
+      jobTitle, jobDescription, clientName, budget, tone, length,
+      name: user.name, profile: user.profile, isPriority: isPriorityAI,
+    });
 
     // Use AI service with automatic fallback
     let generatedProposal;
@@ -202,9 +144,12 @@ Make it specific, natural, personalized and professional. Write as if you are ${
     } catch (aiError) {
       console.error('All AI providers failed:', aiError.message);
       // Every AI provider failed: return a template, clearly flagged, and don't count it.
-      generatedProposal = generateFallbackProposal(req.body, user);
+      generatedProposal = buildTemplateProposal({ jobTitle, clientName, budget, name: user.name, profile: user.profile });
       usedFallback = true;
     }
+
+    // A template fallback is not charged against the quota
+    if (usedFallback) await canGenerate.release();
 
     if (!generatedProposal) {
       return res.status(500).json({ message: 'Failed to generate proposal text' });
@@ -242,11 +187,6 @@ Make it specific, natural, personalized and professional. Write as if you are ${
 
     await analytics.save();
 
-    // Increment usage counters (a template fallback is not charged against the quota)
-    if (!usedFallback) {
-      user.incrementUsage();
-      await user.save();
-    }
 
     res.json({
       id: proposal._id,
@@ -265,40 +205,6 @@ Make it specific, natural, personalized and professional. Write as if you are ${
     res.status(500).json({ message: 'Server error while generating proposal' });
   }
 });
-
-// ===============================
-// Fallback proposal generator
-// ===============================
-function generateFallbackProposal(data, user) {
-  const { jobTitle, clientName, budget } = data;
-
-  return `Dear ${clientName || 'Hiring Manager'},
-
-Thank you for considering me for the ${jobTitle} position. I am excited about the opportunity to contribute to your project.
-
-I have carefully reviewed your requirements and believe my experience as a ${user.profile?.role || 'professional freelancer'} makes me a strong fit for this role.
-
-My approach focuses on:
-• Clear and consistent communication throughout the project
-• Timely delivery that respects your deadlines
-• High-quality results tailored to your specific goals
-• Ongoing collaboration to ensure your vision is realized
-
-With ${user.profile?.experience || 'extensive experience in the field'}, I bring valuable expertise in ${user.profile?.skills || 'the required areas'}.
-
-Timeline & Availability:
-I am available to start immediately and can align with your project timeline to ensure smooth progress.
-
-Investment:
-${budget ? `I understand your budget of ${budget} and will ensure you receive excellent value for your investment.` : 'I am happy to discuss pricing based on the project scope and deliverables.'}
-
-I would love the opportunity to discuss your project in more detail and answer any questions you may have.
-
-Looking forward to working together!
-
-Best regards,
-${user.name}`;
-}
 
 // ===============================
 // Create / return a public share link
@@ -343,7 +249,7 @@ router.post('/:id/unshare', auth, async (req, res) => {
 router.get('/public/:token', publicLimiter, async (req, res) => {
   try {
     const proposal = await Proposal.findOne({ shareToken: req.params.token, isPublic: true })
-      .populate('user', 'name branding');
+      .populate('user', 'name branding subscription');
     if (!proposal) return res.status(404).json({ message: 'This proposal link is not available.' });
 
     // Track views (best-effort)
@@ -360,7 +266,10 @@ router.get('/public/:token', publicLimiter, async (req, res) => {
       createdAt: proposal.createdAt,
       author: {
         name: author.name || 'A LunarBid user',
-        branding: author.branding || null
+        // Branding shows only while the author's plan includes it.
+        branding: author.branding && author.hasFeatureAccess?.('customBranding')
+          ? { ...(author.branding.toObject?.() || author.branding), logoUrl: displayUrl(author.branding.logoUrl) }
+          : null
       }
     });
   } catch (error) {
@@ -408,80 +317,78 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 // ===============================
-// Send proposal (mark as sent)
+// Send a proposal to a client by email.
+// Sent from LunarBid's address with Reply-To set to the freelancer, so replies go to them.
+// The proposal also gets a share link, included in the email.
 // ===============================
-router.post('/:id/send', auth, async (req, res) => {
+router.post('/:id/send', auth, requireVerifiedEmail, sendLimiter, async (req, res, next) => {
   try {
-    const { recipientEmail, subject, message } = req.body;
-
-    if (!recipientEmail || !subject ) {
-      return res.status(400).json({ message: 'Recipient email and subject are required or Proposal already sent' });
-    }
-
-    const proposal = await Proposal.findOneAndUpdate(
-      { _id: req.params.id, user: req.user._id },
-      {
-        status: 'sent',
-        isSent: true,
-        sentAt: new Date(),
-        updatedAt: new Date()
-      },
-      { new: true }
+    const { recipientEmail, subject, message, content } = req.body;
+    const to = typeof recipientEmail === 'string' ? recipientEmail.trim().toLowerCase() : '';
+    const invalid = firstError(
+      !EMAIL_RE.test(to) || to.length > 254 ? 'Enter a valid recipient email address' : null,
+      checkString(subject, 'subject', { required: true, max: 150 }),
+      checkString(message, 'message', { max: 2000 }),
+      checkString(content, 'editedProposal')
     );
+    if (invalid) return res.status(400).json({ message: invalid });
 
-    if (!proposal) {
-      return res.status(404).json({ message: 'Proposal not found' });
+    if (!mailerConfigured()) {
+      return res.status(503).json({
+        message: 'Email sending is not set up yet. Copy the proposal or its share link and send it yourself.',
+        notConfigured: true,
+      });
     }
 
-    // TODO: Integrate with email service (SendGrid, Nodemailer, etc.)
-    // For now, just mark as sent and log the details
-    console.log('Proposal sent to:', recipientEmail);
-    console.log('Subject:', subject);
-    console.log('status:', proposal.status);
-    console.log('Sent?', proposal.isSent);
-    if (message) {
-      console.log('Message:', message);
+    const proposal = await Proposal.findOne({ _id: req.params.id, user: req.user._id });
+    if (!proposal) return res.status(404).json({ message: 'Proposal not found' });
+
+    // Send exactly what the user sees (they may have edited it on screen).
+    if (typeof content === 'string' && content.trim()) proposal.editedProposal = content;
+    if (!proposal.shareToken) proposal.shareToken = crypto.randomBytes(16).toString('hex');
+    proposal.isPublic = true;
+
+    const sender = req.user;
+    const text = proposal.editedProposal || proposal.generatedProposal;
+    const link = `${(process.env.FRONTEND_URL || '').replace(/\/$/, '')}/p/${proposal.shareToken}`;
+    const email = proposalEmail({ senderName: sender.name, subject: subject.trim(), message, text, link });
+
+    const result = await sendMail({ to, subject: subject.trim(), html: email.html, text: email.text, replyTo: sender.email });
+    if (!result.sent) {
+      return res.status(502).json({ message: 'The email could not be sent. Please try again in a moment.' });
     }
 
-    res.json({
-      message: 'Proposal sent successfully',
-      proposal,
-      sentTo: recipientEmail,
-      subject
-    });
+    proposal.status = 'sent';
+    proposal.isSent = true;
+    proposal.sentAt = new Date();
+    proposal.updatedAt = new Date();
+    await proposal.save();
+
+    res.json({ message: 'Proposal sent', proposal, sentTo: to, shareUrl: link });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    next(error);
   }
 });
 
 // ===============================
 // Get proposal history
 // ===============================
-router.get('/history', auth, async (req, res) => {
+router.get('/history', auth, async (req, res, next) => {
   try {
-    const { status, sort = 'newest' } = req.query;
-    
-    let query = { user: req.user._id };
-    if (status) {
-      query.status = status;
+    // Newest first, 20 per page. Pass the returned nextCursor to get the next page.
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 50);
+    const query = { user: req.user._id };
+    if (req.query.status && STATUSES.includes(req.query.status)) query.status = req.query.status;
+    if (req.query.cursor) {
+      if (!/^[a-f0-9]{24}$/i.test(req.query.cursor)) return res.status(400).json({ message: 'Invalid cursor' });
+      query._id = { $lt: req.query.cursor };
     }
 
-    let sortOption = { createdAt: -1 };
-    if (sort === 'oldest') {
-      sortOption = { createdAt: 1 };
-    } else if (sort === 'recent-update') {
-      sortOption = { updatedAt: -1 };
-    }
-
-    const proposals = await Proposal.find(query)
-      .sort(sortOption)
-      .limit(100);
-
-    res.json(proposals);
+    const rows = await Proposal.find(query).sort({ _id: -1 }).limit(limit + 1);
+    const items = rows.slice(0, limit);
+    res.json({ items, nextCursor: rows.length > limit ? String(items[items.length - 1]._id) : null });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    next(error);
   }
 });
 

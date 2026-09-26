@@ -9,6 +9,9 @@ const { handleStripeWebhook } = require('./routes/stripeWebhook');
 const { requestId, notFound, errorHandler } = require('./middleware/errors');
 const { apiLimiter } = require('./middleware/rateLimits');
 
+// Run schema validators on updates too, not only on create/save.
+mongoose.set('runValidators', true);
+
 const app = express();
 
 // Behind a load balancer/proxy (Render, Railway, Fly, Heroku, nginx): trust one hop
@@ -47,6 +50,21 @@ app.get('/health', (req, res) => {
   res.status(db ? 200 : 503).json({ status: db ? 'ok' : 'degraded', db });
 });
 
+// Uploaded images in local development (production uses an S3-compatible bucket).
+// Served with nosniff and a locked-down CSP; cross-origin so the frontend can display them.
+if (!require('./services/storage').useS3()) {
+  app.use(
+    '/uploads',
+    express.static(require('./services/storage').LOCAL_DIR, {
+      fallthrough: false,
+      setHeaders: (res) => {
+        res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.set('Content-Security-Policy', "default-src 'none'");
+      },
+    })
+  );
+}
+
 app.use('/api', apiLimiter);
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/profile', require('./routes/profile'));
@@ -56,6 +74,7 @@ app.use('/api/branding', require('./routes/branding'));
 app.use('/api/client-profiles', require('./routes/clientProfiles'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/support', require('./routes/support'));
+app.use('/api/account', require('./routes/account'));
 
 app.use('/api', notFound);
 if (process.env.SENTRY_DSN) Sentry.setupExpressErrorHandler(app);

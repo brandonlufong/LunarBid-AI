@@ -4,7 +4,7 @@ import { Globe, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 const LanguageSelector = ({ className = '' }) => {
-  const { currentLanguage, changeLanguage, t } = useLanguage();
+  const { currentLanguage, changeLanguage } = useLanguage();
   const { darkMode } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
 

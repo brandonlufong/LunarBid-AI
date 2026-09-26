@@ -3,6 +3,7 @@ const router = express.Router();
 const ClientProfile = require('../models/ClientProfile');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { pickClientProfile } = require('../utils/validate');
 const checkFeatureAccess = require('../middleware/checkFeatureAccess');
 
 // ===============================
@@ -80,23 +81,9 @@ router.post('/', auth, checkFeatureAccess('clientProfiles'), async (req, res) =>
       });
     }
     
-    const {
-      profileName,
-      companyName,
-      industry,
-      contactPerson,
-      email,
-      phone,
-      preferredTone,
-      preferredStyle,
-      notes,
-      tags,
-      isFavorite
-    } = req.body;
-    
-    if (!profileName) {
-      return res.status(400).json({ message: 'Profile name is required' });
-    }
+    const { error, fields } = pickClientProfile(req.body, { requireName: true });
+    if (error) return res.status(400).json({ message: error });
+    const { profileName, companyName, industry, contactPerson, email, phone, preferredTone, preferredStyle, notes, tags, isFavorite } = fields;
     
     const profile = new ClientProfile({
       user: user._id,
@@ -164,6 +151,10 @@ router.get('/:id', auth, checkFeatureAccess('clientProfiles'), async (req, res) 
 // ===============================
 router.put('/:id', auth, checkFeatureAccess('clientProfiles'), async (req, res) => {
   try {
+    // Only editable fields: owner, team and counters can never be changed by a request.
+    const { error, fields: updateFields } = pickClientProfile(req.body);
+    if (error) return res.status(400).json({ message: error });
+
     const user = await User.findById(req.user._id);
     
     let query = { _id: req.params.id, user: user._id };
@@ -180,7 +171,7 @@ router.put('/:id', auth, checkFeatureAccess('clientProfiles'), async (req, res) 
     
     const profile = await ClientProfile.findOneAndUpdate(
       query,
-      { $set: req.body },
+      { $set: { ...updateFields, updatedAt: new Date() } },
       { new: true, runValidators: true }
     );
     

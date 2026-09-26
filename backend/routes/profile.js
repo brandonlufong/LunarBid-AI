@@ -2,33 +2,18 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { pickProfile } = require('../utils/validate');
 
 // Update profile
 router.put('/', auth, async (req, res) => {
   try {
-    const { 
-      experience, 
-      skills, 
-      hourlyRate, 
-      portfolio, 
-      bio,
-      role,
-      preferredTone,
-      platformFocus
-    } = req.body;
+    // Only known fields, within length limits. A field sent as "" is cleared.
+    const { error, update } = pickProfile(req.body);
+    if (error) return res.status(400).json({ message: error });
 
     const user = await User.findById(req.user._id);
-    
-    user.profile = {
-      experience: experience || user.profile.experience,
-      skills: skills || user.profile.skills,
-      hourlyRate: hourlyRate || user.profile.hourlyRate,
-      portfolio: portfolio || user.profile.portfolio,
-      bio: bio || user.profile.bio,
-      role: role || user.profile.role,
-      preferredTone: preferredTone || user.profile.preferredTone,
-      platformFocus: platformFocus || user.profile.platformFocus
-    };
+    const current = user.profile?.toObject ? user.profile.toObject() : { ...(user.profile || {}) };
+    user.profile = { ...current, ...update };
 
     await user.save();
 

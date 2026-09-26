@@ -28,6 +28,16 @@ const userSchema = new mongoose.Schema({
   providerId: { type: String, default: null },
   avatar: { type: String, default: '' },
 
+  // Email verification. New accounts start as false; accounts created before verification
+  // existed have no value and are treated as verified (see isEmailVerified()).
+  emailVerified: { type: Boolean },
+  emailVerifyToken: { type: String, default: null },
+  emailVerifyExpires: { type: Date, default: null },
+
+  // Increased to sign the user out everywhere (password reset/change, "sign out everywhere").
+  // Every session token carries the version it was issued with.
+  tokenVersion: { type: Number, default: 0 },
+
   // Password reset
   resetPasswordToken: { type: String, default: null },
   resetPasswordExpires: { type: Date, default: null },
@@ -129,6 +139,10 @@ userSchema.pre('save', function () {
   this.updatedAt = Date.now();
 });
 
+userSchema.methods.isEmailVerified = function () {
+  return this.emailVerified !== false;
+};
+
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
@@ -222,5 +236,6 @@ userSchema.index({ 'team.teamId': 1 });
 userSchema.index({ 'subscription.stripeCustomerId': 1 }, { sparse: true });
 userSchema.index({ 'subscription.stripeSubscriptionId': 1 }, { sparse: true });
 userSchema.index({ resetPasswordToken: 1 }, { sparse: true });
+userSchema.index({ emailVerifyToken: 1 }, { sparse: true });
 
 module.exports = mongoose.model('User', userSchema);

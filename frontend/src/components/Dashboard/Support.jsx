@@ -3,7 +3,7 @@ import { Mail, MessageCircle, Phone, ExternalLink, Clock, CheckCircle } from 'lu
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../UI/Toast';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
-import axios from 'axios';
+import api from '../../services/api';
 
 const Support = () => {
   const { darkMode } = useTheme();
@@ -23,7 +23,7 @@ const Support = () => {
     
     try {
       const token = localStorage.getItem('token');
-      await axios.post('/api/support/ticket', formData, {
+      await api.post('/support/tickets', formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -91,10 +91,10 @@ const Support = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Category */}
               <div>
-                <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                <label htmlFor="support-field-1" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                   {t('dashboard.support.category')}
                 </label>
-                <select
+                <select id="support-field-1"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   className={`w-full px-4 py-3 rounded-lg border-2 ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-white border-slate-200 text-slate-800'} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
@@ -109,10 +109,10 @@ const Support = () => {
 
               {/* Subject */}
               <div>
-                <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                <label htmlFor="support-field-2" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                   {t('dashboard.support.subject')} <span className="text-red-500">*</span>
                 </label>
-                <input
+                <input id="support-field-2"
                   type="text"
                   value={formData.subject}
                   onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
@@ -124,10 +124,10 @@ const Support = () => {
 
               {/* Message */}
               <div>
-                <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                <label htmlFor="support-field-3" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                   {t('dashboard.support.message')} <span className="text-red-500">*</span>
                 </label>
-                <textarea
+                <textarea id="support-field-3"
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                   placeholder={t('dashboard.support.messagePlaceholder')}

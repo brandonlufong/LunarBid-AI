@@ -3,7 +3,7 @@ import { Palette, Upload, Save, RotateCcw, Eye, Loader2, CheckCircle, Image as I
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../UI/Toast';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
-import axios from 'axios';
+import api from '../../services/api';
 
 const Branding = () => {
   const { darkMode } = useTheme();
@@ -31,7 +31,7 @@ const Branding = () => {
   const loadBranding = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/branding', {
+      const response = await api.get('/branding', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFormData(response.data.branding);
@@ -52,7 +52,7 @@ const Branding = () => {
   const handleLogoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > 2 * 1024 * 1024) {
         toast.error(t('dashboard.branding.fileTooLarge'));
         return;
       }
@@ -69,7 +69,7 @@ const Branding = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('/api/branding/logo', formDataUpload, {
+      const response = await api.post('/branding/logo', formDataUpload, {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
@@ -97,7 +97,7 @@ const Branding = () => {
 
       // Update branding settings
       const token = localStorage.getItem('token');
-      await axios.put('/api/branding', formData, {
+      await api.put('/branding', formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -115,7 +115,7 @@ const Branding = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.post('/api/branding/reset', {}, {
+      await api.post('/branding/reset', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       await loadBranding();
@@ -133,7 +133,7 @@ const Branding = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.delete('/api/branding/logo', {
+      await api.delete('/branding/logo', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFormData(prev => ({ ...prev, logoUrl: '' }));
@@ -232,7 +232,7 @@ const Branding = () => {
             <div className="flex-1 space-y-3">
               <input
                 type="file"
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp"
                 onChange={handleLogoChange}
                 className="hidden"
                 id="logo-upload"
@@ -274,11 +274,11 @@ const Branding = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Primary Color */}
             <div>
-              <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+              <label htmlFor="brand-field-1" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                 {t('dashboard.branding.primaryColor')}
               </label>
               <div className="flex items-center gap-3">
-                <input
+                <input id="brand-field-1"
                   type="color"
                   value={formData.primaryColor}
                   onChange={(e) => setFormData({...formData, primaryColor: e.target.value})}
@@ -296,11 +296,11 @@ const Branding = () => {
 
             {/* Secondary Color */}
             <div>
-              <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+              <label htmlFor="brand-field-2" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                 {t('dashboard.branding.secondaryColor')}
               </label>
               <div className="flex items-center gap-3">
-                <input
+                <input id="brand-field-2"
                   type="color"
                   value={formData.secondaryColor}
                   onChange={(e) => setFormData({...formData, secondaryColor: e.target.value})}
@@ -330,10 +330,10 @@ const Branding = () => {
           <div className="space-y-4">
             {/* Company Name */}
             <div>
-              <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+              <label htmlFor="brand-field-3" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                 {t('dashboard.branding.companyName')}
               </label>
-              <input
+              <input id="brand-field-3"
                 type="text"
                 value={formData.companyName}
                 onChange={(e) => setFormData({...formData, companyName: e.target.value})}
@@ -344,10 +344,10 @@ const Branding = () => {
 
             {/* Tagline */}
             <div>
-              <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+              <label htmlFor="brand-field-4" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                 {t('dashboard.branding.tagline')}
               </label>
-              <input
+              <input id="brand-field-4"
                 type="text"
                 value={formData.tagline}
                 onChange={(e) => setFormData({...formData, tagline: e.target.value})}
@@ -358,12 +358,12 @@ const Branding = () => {
 
             {/* Website */}
             <div>
-              <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+              <label htmlFor="brand-field-5" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                 {t('dashboard.branding.website')}
               </label>
               <div className="flex items-center gap-2">
                 <Globe className={`w-5 h-5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`} />
-                <input
+                <input id="brand-field-5"
                   type="url"
                   value={formData.website}
                   onChange={(e) => setFormData({...formData, website: e.target.value})}

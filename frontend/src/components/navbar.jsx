@@ -16,11 +16,6 @@ const Navbar = () => {
   const { darkMode } = useTheme();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // Toggle sidebar function for dashboard
-  const toggleDashboardSidebar = () => {
-    // Dispatch custom event to toggle sidebar
-    window.dispatchEvent(new CustomEvent('toggleDashboardSidebar'));
-  };
 
   // Don't show navbar on landing page or auth pages - they have their own
   const hideNavbar = location.pathname === '/' || 
@@ -33,6 +28,7 @@ const Navbar = () => {
                      location.pathname === '/terms' ||
                      location.pathname === '/privacy' ||
                      location.pathname === '/refunds' ||
+                     location.pathname === '/verify-email' ||
                      location.pathname === '/about' ||
                      location.pathname === '/contact' ||
                      location.pathname === '/blog' ||
@@ -47,22 +43,7 @@ const Navbar = () => {
     return null;
   }
 
-  // Dashboard menu items
-  const dashboardMenuItems = [
-    { id: 'generate', label: t('dashboard.navigation.generate'), icon: '📝' },
-    { id: 'history', label: t('dashboard.navigation.history'), icon: '📄' },
-    { id: 'clients', label: t('dashboard.navigation.clients'), icon: '👥' },
-    { id: 'analytics', label: t('dashboard.navigation.analytics'), icon: '📊' },
-    { id: 'calculator', label: t('dashboard.navigation.calculator'), icon: '🧮' },
-    { id: 'branding', label: t('dashboard.navigation.branding'), icon: '🎨' },
-    { id: 'profile', label: t('dashboard.navigation.profile'), icon: '👤' },
-    { id: 'subscription', label: t('dashboard.navigation.subscription'), icon: '💎' },
-  ];
 
-  const handleDashboardMenuClick = (tabId) => {
-    navigate('/dashboard', { state: { tab: tabId } });
-    setShowProfileMenu(false);
-  };
 
   return (
     <nav className="w-full border-b shadow-lg sticky top-0 z-50 bg-[#0b1020]/90 backdrop-blur-xl border-white/10">

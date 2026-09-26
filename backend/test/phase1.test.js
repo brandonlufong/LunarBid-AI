@@ -33,6 +33,7 @@ function makeUser(fields = {}) {
   return u;
 }
 const query = (value) => ({ select: async () => value, then: (r, j) => Promise.resolve(value).then(r, j), catch: () => Promise.resolve(value) });
+require('./helpers/atomicUsers')(User, users);
 User.findById = (id) => query(users.get(String(id)) || null);
 User.findOne = (filter) => {
   const all = [...users.values()];

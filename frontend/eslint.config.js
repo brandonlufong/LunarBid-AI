@@ -23,7 +23,11 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // `motion` is used as <motion.div>, which this rule does not detect without the React plugin.
+      // Unused `catch (error)` bindings are allowed.
+      'no-unused-vars': ['error', { varsIgnorePattern: '^([A-Z_]|motion$)', caughtErrors: 'none' }],
+      // Context files export a provider and its hook together; this only affects hot reload in development.
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
 ])

@@ -1,6 +1,7 @@
 // src/components/PublicProposal.jsx
 // Public, no-auth view of a shared proposal at /p/:token. Branded, responsive.
 import React, { useEffect, useState } from 'react';
+import { useLanguage } from '../locales/LanguageContext.jsx';
 import { useParams } from 'react-router-dom';
 import { getPublicProposal } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
@@ -10,6 +11,16 @@ import { Moon, Sparkles, Copy, Check, Printer, Loader2, FileWarning } from 'luci
 const PublicProposal = () => {
   const { token } = useParams();
   const { darkMode } = useTheme();
+  const { t } = useLanguage();
+
+  // Shared proposals are private documents: keep them out of search engines.
+  useEffect(() => {
+    const meta = document.createElement('meta');
+    meta.name = 'robots';
+    meta.content = 'noindex, nofollow';
+    document.head.appendChild(meta);
+    return () => meta.remove();
+  }, []);
   const toast = useToast();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -70,7 +81,7 @@ const PublicProposal = () => {
       <div className="max-w-3xl mx-auto">
         {/* Action bar (hidden when printing) */}
         <div className="flex justify-end gap-2 mb-4 print:hidden">
-          <button
+          <button aria-label={copied ? t('a11y.copied') : t('a11y.copy')}
             onClick={copy}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all ${
               darkMode ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'

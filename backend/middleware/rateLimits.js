@@ -29,7 +29,15 @@ const aiLimiter = rateLimit({
   ...json('You are generating very quickly. Please wait a moment and try again.'),
 });
 
+// Emailing proposals to clients, per user: stops LunarBid being used to send spam.
+const sendLimiter = rateLimit({
+  windowMs: minutes(60 * 24),
+  limit: Number(process.env.SEND_LIMIT_PER_DAY || 30),
+  keyGenerator: (req) => (req.user ? `send:${req.user._id}` : req.ip),
+  ...json('You have reached today’s limit for emailing proposals. Copy the share link instead, or try again tomorrow.'),
+});
+
 // Public share links (no sign-in).
 const publicLimiter = rateLimit({ windowMs: minutes(1), limit: 60, ...json('Too many requests.') });
 
-module.exports = { apiLimiter, authLimiter, signupLimiter, passwordResetLimiter, aiLimiter, publicLimiter };
+module.exports = { apiLimiter, authLimiter, signupLimiter, passwordResetLimiter, aiLimiter, sendLimiter, publicLimiter };

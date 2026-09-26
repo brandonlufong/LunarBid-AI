@@ -1,5 +1,18 @@
 // English translations
 export const en = {
+    a11y: {
+      close: "Close",
+      dismiss: "Dismiss",
+      edit: "Edit proposal",
+      export: "Export proposal",
+      share: "Copy share link",
+      send: "Send proposal by email",
+      copy: "Copy proposal",
+      copied: "Copied",
+      deleteClient: "Delete client profile",
+      darkMode: "Switch to dark mode",
+      lightMode: "Switch to light mode"
+    },
   // Landing Page
   landing: {
     hero: {
@@ -84,7 +97,20 @@ export const en = {
 
   // Auth
   auth: {
+    verify: {
+      working: "Confirming your email...",
+      done: "Your email is confirmed. You're all set.",
+      invalid: "This confirmation link is invalid or has expired. Request a new one from your dashboard.",
+      toDashboard: "Go to dashboard",
+      toLogin: "Sign in",
+      banner: "Please confirm your email address ({{email}}) to use AI features. We sent you a link.",
+      resend: "Resend link",
+      resent: "A new confirmation link is on its way to {{email}}.",
+      resendError: "We couldn't send the email. Please try again later."
+    },
     login: {
+      sessionExpired: "Your session has expired. Please sign in again.",
+      sessionRevoked: "You were signed out because your password changed or you signed out everywhere. Please sign in again.",
       title: "Welcome Back",
       subtitle: "Sign in to your account",
       email: "Email",
@@ -154,6 +180,7 @@ export const en = {
       backToLogin: "Back to sign in"
     },
     oauth: {
+      unverified: "Your email address isn't verified with that provider. Verify it there, or sign in with email and password.",
       signingIn: "Signing you in…",
       failed: "Sign-in failed. Please try again.",
       unconfigured: "{{provider}} sign-in isn't set up yet."
@@ -194,6 +221,10 @@ export const en = {
       aiReady: "AI Ready"
     },
     generate: {
+      stageReading: "Reading the job post...",
+      stageWriting: "Drafting your proposal...",
+      stagePolishing: "Polishing the wording...",
+      stageSlow: "Taking longer than usual: switching to a backup AI provider. This can take up to a minute.",
       templateNotice: "Our AI providers are busy, so this is a starting template, not an AI draft. It was not counted against your limit. Try generating again in a minute.",
       title: "Generate Proposal",
       jobTitle: "Job Title",
@@ -247,7 +278,7 @@ export const en = {
       titleSend: "Send proposal",
       toastSendMissing: "Please fill in recipient email and subject",
       toastNoProposal: "Generate a proposal first.",
-      toastSent: "Proposal marked as sent!",
+      toastSent: "Proposal sent to {{email}}. Replies will come straight to your inbox.",
       toastSendFailed: "Failed to send proposal. Please try again.",
       toastPopup: "Please allow pop-ups to export as PDF.",
       toastShared: "Public share link copied to clipboard!",
@@ -266,6 +297,7 @@ export const en = {
       send: "Send"
     },
     analyzer: {
+      noProfileScore: "Add your role and skills in Profile to get a match score.",
       button: "Analyze Job Post",
       view: "View AI Analysis",
       reanalyze: "Re-analyze",
@@ -298,6 +330,9 @@ export const en = {
       markdown: "Markdown"
     },
     history: {
+      loadMore: "Load older proposals",
+      loadingMore: "Loading...",
+      loadMoreError: "Could not load more proposals. Please try again.",
       title: "Proposal History",
       noProposals: "No proposals yet",
       generateFirst: "Generate your first winning proposal to see it here!",
@@ -372,6 +407,8 @@ export const en = {
       submitFailed: "Failed to submit support ticket. Please try again."
     },
     subscription: {
+      loadError: "We couldn't load your subscription. Check your connection and try again.",
+      retry: "Try again",
       yourSubscription: "Your Subscription",
       manageBilling: "Manage billing",
       checkoutSuccess: "Payment received, thank you! Your plan is being activated.",
@@ -408,6 +445,31 @@ export const en = {
         pro: ["Unlimited proposals", "Priority AI processing", "Advanced analytics", "Custom branding", "Priority support"],
         agency: ["Everything in Pro", "Team collaboration", "5 team members", "White-label branding", "API access", "Dedicated support"]
       }
+    },
+    security: {
+      title: "Security",
+      current: "Current password",
+      new: "New password",
+      change: "Change password",
+      passwordChanged: "Password changed. Your other devices have been signed out.",
+      othersHint: "Signed in on a device you no longer use?",
+      signOutOthers: "Sign out of all other devices",
+      signedOutOthers: "Signed out of all other devices.",
+      error: "Something went wrong. Please try again."
+    },
+    account: {
+      title: "Your data",
+      subtitle: "Download a copy of everything in your account, or delete your account.",
+      export: "Export my data",
+      exportError: "We couldn't prepare your export. Please try again.",
+      delete: "Delete account",
+      confirmTitle: "Delete your account?",
+      confirmBody: "This permanently deletes your proposals, clients, analytics and settings, and cancels any subscription immediately. This cannot be undone.",
+      passwordLabel: "Enter your password to confirm",
+      emailLabel: "Type your email address ({{email}}) to confirm",
+      confirmDelete: "Delete permanently",
+      cancel: "Cancel",
+      deleteError: "We couldn't delete your account. Please try again."
     },
     profile: {
       title: "Freelancer Profile",
@@ -457,7 +519,7 @@ export const en = {
       companyLogo: "Company Logo",
       chooseFile: "Choose File",
       removeLogo: "Remove Logo",
-      logoSupport: "Supported: JPG, PNG, SVG (max 5MB)",
+      logoSupport: "Supported: PNG, JPG, WebP (max 2 MB)",
       brandColors: "Brand Colors",
       primaryColor: "Primary Color",
       secondaryColor: "Secondary Color",
@@ -472,7 +534,7 @@ export const en = {
       sampleCta: "Sample Call-to-Action Button",
       saving: "Saving...",
       save: "Save Branding Settings",
-      fileTooLarge: "File size must be less than 5MB",
+      fileTooLarge: "File size must be less than 2 MB",
       logoUploaded: "Logo uploaded successfully!",
       logoUploadError: "Error uploading logo",
       saved: "Branding settings saved successfully!",

@@ -1,4 +1,6 @@
 const express = require('express');
+const { escapeHtml } = require('../services/emails');
+const { checkString, firstError } = require('../utils/validate');
 const router = express.Router();
 const mongoose = require('mongoose');
 const User = require('../models/User');
@@ -129,6 +131,12 @@ router.post('/tickets', auth, async (req, res) => {
         message: 'Category, subject, and message are required' 
       });
     }
+    const invalid = firstError(
+      checkString(category, 'category', { required: true, max: 50 }),
+      checkString(subject, 'subject', { required: true, max: 150 }),
+      checkString(message, 'message', { required: true, max: 5000 })
+    );
+    if (invalid) return res.status(400).json({ message: invalid });
     
     const user = await User.findById(req.user._id);
     
@@ -226,6 +234,9 @@ router.post('/tickets/:id/responses', auth, async (req, res) => {
     
     if (!message) {
       return res.status(400).json({ message: 'Message is required' });
+    }
+    if (typeof message !== 'string' || message.length > 5000) {
+      return res.status(400).json({ message: 'message must be text of at most 5000 characters' });
     }
     
     const ticket = await SupportTicket.findOne({
@@ -349,14 +360,14 @@ async function sendTicketConfirmationEmail(ticket) {
       subject: `Support Ticket Created - #${ticket._id}`,
       html: `
         <h2>Support Ticket Created</h2>
-        <p>Hi ${ticket.name},</p>
+        <p>Hi ${escapeHtml(ticket.name)},</p>
         <p>Thank you for contacting LunarBid support. We've received your request and will respond within ${SLA_RESPONSE_TIMES[ticket.subscriptionPlan]}.</p>
         
         <h3>Ticket Details:</h3>
         <ul>
           <li><strong>Ticket ID:</strong> #${ticket._id}</li>
-          <li><strong>Subject:</strong> ${ticket.subject}</li>
-          <li><strong>Category:</strong> ${ticket.category}</li>
+          <li><strong>Subject:</strong> ${escapeHtml(ticket.subject)}</li>
+          <li><strong>Category:</strong> ${escapeHtml(ticket.category)}</li>
           <li><strong>Priority:</strong> ${ticket.priority}</li>
           <li><strong>Status:</strong> ${ticket.status}</li>
         </ul>
@@ -387,13 +398,13 @@ async function notifySupportTeam(ticket, isUpdate = false) {
           <li><strong>Ticket ID:</strong> #${ticket._id}</li>
           <li><strong>Plan:</strong> ${ticket.subscriptionPlan.toUpperCase()}</li>
           <li><strong>Priority:</strong> ${ticket.priority.toUpperCase()}</li>
-          <li><strong>Category:</strong> ${ticket.category}</li>
-          <li><strong>User:</strong> ${ticket.name} (${ticket.email})</li>
-          <li><strong>Subject:</strong> ${ticket.subject}</li>
+          <li><strong>Category:</strong> ${escapeHtml(ticket.category)}</li>
+          <li><strong>User:</strong> ${escapeHtml(ticket.name)} (${escapeHtml(ticket.email)})</li>
+          <li><strong>Subject:</strong> ${escapeHtml(ticket.subject)}</li>
         </ul>
         
         <h3>Message:</h3>
-        <p>${ticket.message}</p>
+        <p>${escapeHtml(ticket.message)}</p>
         
         <p><strong>Expected Response Time:</strong> ${SLA_RESPONSE_TIMES[ticket.subscriptionPlan]}</p>
       `

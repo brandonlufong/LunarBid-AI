@@ -99,8 +99,8 @@ const PricingCalculator = ({ onUseBid }) => {
         <div className={card}>
           <div className="space-y-5">
             <div>
-              <label className={label}>{t('dashboard.calculator.projectType')}</label>
-              <select value={form.projectType} onChange={(e) => set('projectType', e.target.value)} className={`${input} cursor-pointer`}>
+              <label htmlFor="calc-field-1" className={label}>{t('dashboard.calculator.projectType')}</label>
+              <select id="calc-field-1" value={form.projectType} onChange={(e) => set('projectType', e.target.value)} className={`${input} cursor-pointer`}>
                 <option value="web">{t('dashboard.calculator.typeWeb')}</option>
                 <option value="design">{t('dashboard.calculator.typeDesign')}</option>
                 <option value="writing">{t('dashboard.calculator.typeWriting')}</option>
@@ -112,18 +112,18 @@ const PricingCalculator = ({ onUseBid }) => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className={label}>{t('dashboard.calculator.hours')}</label>
-                <input type="number" min="0" value={form.hours} onChange={(e) => set('hours', e.target.value)} placeholder="20" className={input} />
+                <label htmlFor="calc-field-2" className={label}>{t('dashboard.calculator.hours')}</label>
+                <input id="calc-field-2" type="number" min="0" value={form.hours} onChange={(e) => set('hours', e.target.value)} placeholder="20" className={input} />
               </div>
               <div>
-                <label className={label}>{t('dashboard.calculator.hourlyRate')}</label>
-                <input type="number" min="0" value={form.rate} onChange={(e) => set('rate', e.target.value)} placeholder="60" className={input} />
+                <label htmlFor="calc-field-3" className={label}>{t('dashboard.calculator.hourlyRate')}</label>
+                <input id="calc-field-3" type="number" min="0" value={form.rate} onChange={(e) => set('rate', e.target.value)} placeholder="60" className={input} />
               </div>
             </div>
 
             <div>
-              <label className={label}>{t('dashboard.calculator.complexity')}</label>
-              <div className="grid grid-cols-3 gap-2">
+              <label id="calc-group-4" className={label}>{t('dashboard.calculator.complexity')}</label>
+              <div role="group" aria-labelledby="calc-group-4" className="grid grid-cols-3 gap-2">
                 {['low', 'medium', 'high'].map((c) => (
                   <button
                     key={c}
@@ -143,8 +143,8 @@ const PricingCalculator = ({ onUseBid }) => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className={label}>{t('dashboard.calculator.urgency')}</label>
-                <div className="grid grid-cols-2 gap-2">
+                <label id="calc-group-5" className={label}>{t('dashboard.calculator.urgency')}</label>
+                <div role="group" aria-labelledby="calc-group-5" className="grid grid-cols-2 gap-2">
                   {['normal', 'rush'].map((u) => (
                     <button
                       key={u}
@@ -162,8 +162,8 @@ const PricingCalculator = ({ onUseBid }) => {
                 </div>
               </div>
               <div>
-                <label className={label}>{t('dashboard.calculator.revisions')}</label>
-                <input type="number" min="0" max="20" value={form.revisions} onChange={(e) => set('revisions', e.target.value)} className={input} />
+                <label htmlFor="calc-field-6" className={label}>{t('dashboard.calculator.revisions')}</label>
+                <input id="calc-field-6" type="number" min="0" max="20" value={form.revisions} onChange={(e) => set('revisions', e.target.value)} className={input} />
               </div>
             </div>
           </div>

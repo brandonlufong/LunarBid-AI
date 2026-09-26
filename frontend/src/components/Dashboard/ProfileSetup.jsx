@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { User, Save, Loader2, Briefcase, Code, DollarSign, Globe, FileText, CheckCircle, Mic, Target } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
+import AccountData from './AccountData';
+import AccountSecurity from './AccountSecurity';
 
 const ProfileSetup = () => {
   const { updateUser } = useAuth();
@@ -29,7 +31,8 @@ const ProfileSetup = () => {
   const loadProfile = async () => {
     try {
       const res = await getProfile();
-      setFormData(res.data);
+      // Merge over the defaults so a missing field can never break the form.
+      setFormData((prev) => ({ ...prev, ...(res.data || {}), platformFocus: res.data?.platformFocus || [] }));
     } catch (err) {
       console.error('Error loading profile');
     }
@@ -112,11 +115,11 @@ const ProfileSetup = () => {
             
             {/* Professional Role */}
             <div className={cardClasses}>
-              <label className={labelClasses}>
+              <label htmlFor="profile-field-1" className={labelClasses}>
                 <Briefcase className={`w-5 h-5 ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
                 {t('dashboard.profile.role')}
               </label>
-              <input
+              <input id="profile-field-1"
                 type="text"
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
@@ -130,11 +133,11 @@ const ProfileSetup = () => {
 
             {/* Experience */}
             <div className={cardClasses}>
-              <label className={labelClasses}>
+              <label htmlFor="profile-field-2" className={labelClasses}>
                 <Briefcase className={`w-5 h-5 ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
                 {t('dashboard.profile.experience')}
               </label>
-              <textarea
+              <textarea id="profile-field-2"
                 value={formData.experience}
                 onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
                 placeholder={t('dashboard.profile.experiencePlaceholder')}
@@ -145,11 +148,11 @@ const ProfileSetup = () => {
 
             {/* Skills */}
             <div className={cardClasses}>
-              <label className={labelClasses}>
+              <label htmlFor="profile-field-3" className={labelClasses}>
                 <Code className={`w-5 h-5 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
                 {t('dashboard.profile.skills')}
               </label>
-              <input
+              <input id="profile-field-3"
                 type="text"
                 value={formData.skills}
                 onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
@@ -164,11 +167,11 @@ const ProfileSetup = () => {
             {/* Hourly Rate & Portfolio */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className={cardClasses}>
-                <label className={labelClasses}>
+                <label htmlFor="profile-field-4" className={labelClasses}>
                   <DollarSign className={`w-5 h-5 ${darkMode ? 'text-green-400' : 'text-green-600'}`} />
                   {t('dashboard.profile.hourlyRate')}
                 </label>
-                <input
+                <input id="profile-field-4"
                   type="text"
                   value={formData.hourlyRate}
                   onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
@@ -178,11 +181,11 @@ const ProfileSetup = () => {
               </div>
 
               <div className={cardClasses}>
-                <label className={labelClasses}>
+                <label htmlFor="profile-field-5" className={labelClasses}>
                   <Globe className={`w-5 h-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
                   {t('dashboard.profile.portfolio')}
                 </label>
-                <input
+                <input id="profile-field-5"
                   type="url"
                   value={formData.portfolio}
                   onChange={(e) => setFormData({ ...formData, portfolio: e.target.value })}
@@ -194,11 +197,11 @@ const ProfileSetup = () => {
 
             {/* Professional Bio */}
             <div className={cardClasses}>
-              <label className={labelClasses}>
+              <label htmlFor="profile-field-6" className={labelClasses}>
                 <FileText className={`w-5 h-5 ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
                 {t('dashboard.profile.bio')}
               </label>
-              <textarea
+              <textarea id="profile-field-6"
                 value={formData.bio}
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                 placeholder={t('dashboard.profile.bioPlaceholder')}
@@ -212,11 +215,11 @@ const ProfileSetup = () => {
 
             {/* Preferred Tone */}
             <div className={cardClasses}>
-              <label className={labelClasses}>
+              <label htmlFor="profile-field-7" className={labelClasses}>
                 <Mic className={`w-5 h-5 ${darkMode ? 'text-orange-400' : 'text-orange-600'}`} />
                 {t('dashboard.profile.tone')}
               </label>
-              <select
+              <select id="profile-field-7"
                 value={formData.preferredTone}
                 onChange={(e) => setFormData({ ...formData, preferredTone: e.target.value })}
                 className={inputClasses}
@@ -232,11 +235,11 @@ const ProfileSetup = () => {
 
             {/* Platform Focus */}
             <div className={cardClasses}>
-              <label className={labelClasses}>
+              <label id="profile-group-8" className={labelClasses}>
                 <Target className={`w-5 h-5 ${darkMode ? 'text-rose-400' : 'text-rose-600'}`} />
                 {t('dashboard.profile.platformFocus')}
               </label>
-              <div className="space-y-3">
+              <div role="group" aria-labelledby="profile-group-8" className="space-y-3">
                 {['Upwork', 'Fiverr', 'Freelancer'].map((platform) => (
                   <label key={platform} className="flex items-center gap-3 cursor-pointer group">
                     <input
@@ -294,6 +297,9 @@ const ProfileSetup = () => {
               ))}
             </ul>
           </div>
+
+          <AccountSecurity />
+          <AccountData />
 
         {/* </div> */}
       </div>

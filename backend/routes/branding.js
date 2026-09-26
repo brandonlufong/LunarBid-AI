@@ -3,43 +3,16 @@ const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const checkFeatureAccess = require('../middleware/checkFeatureAccess');
-const multer = require('multer'); // npm install multer
-const path = require('path');
-const fs = require('fs').promises;
+const multer = require('multer');
+const { saveImage, removeFile, displayUrl } = require('../services/storage');
+const { escapeHtml } = require('../services/emails');
+const { checkString, firstError } = require('../utils/validate');
 
-// Configure multer for logo upload
-const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    const uploadDir = './uploads/logos';
-    try {
-      await fs.mkdir(uploadDir, { recursive: true });
-      cb(null, uploadDir);
-    } catch (error) {
-      cb(error);
-    }
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, `logo-${req.user._id}-${uniqueSuffix}${path.extname(file.originalname)}`);
-  }
-});
-
+// Logo uploads are kept in memory (max 2 MB) and checked by content, not by name,
+// then saved through services/storage.js (S3-compatible bucket or local disk).
 const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB max
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|svg/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only image files (jpeg, jpg, png, svg) are allowed'));
-    }
-  }
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024, files: 1 },
 });
 
 // ===============================
@@ -49,8 +22,9 @@ router.get('/', auth, checkFeatureAccess('customBranding'), async (req, res) => 
   try {
     const user = await User.findById(req.user._id);
     
+    const branding = user.branding.toObject ? user.branding.toObject() : { ...user.branding };
     res.json({
-      branding: user.branding,
+      branding: { ...branding, logoUrl: displayUrl(branding.logoUrl) },
       plan: user.effectivePlan(),
       whiteLabel: user.hasFeatureAccess('whiteLabel')
     });
@@ -73,8 +47,16 @@ router.put('/', auth, checkFeatureAccess('customBranding'), async (req, res) => 
       website
     } = req.body;
     
+    const invalid = firstError(
+      checkString(companyName, 'companyName', { max: 100 }),
+      checkString(tagline, 'tagline', { max: 150 }),
+      checkString(website, 'website', { max: 200 }),
+      website && !/^https?:\/\/[^\s]+\.[^\s]+$/i.test(website) ? 'website must start with http:// or https://' : null
+    );
+    if (invalid) return res.status(400).json({ message: invalid });
+
     const user = await User.findById(req.user._id);
-    
+
     // Validate color format (hex)
     const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
     
@@ -123,26 +105,18 @@ router.post('/logo',
       }
       
       const user = await User.findById(req.user._id);
-      
-      // Delete old logo if exists
-      if (user.branding.logoUrl) {
-        try {
-          const oldLogoPath = path.join(__dirname, '..', user.branding.logoUrl);
-          await fs.unlink(oldLogoPath);
-        } catch (error) {
-          console.error('Error deleting old logo:', error);
-        }
-      }
-      
-      // Save new logo URL (relative path)
-      user.branding.logoUrl = `/uploads/logos/${req.file.filename}`;
+      const newUrl = await saveImage(req.file.buffer, `logos/${user._id}`);
+      const oldUrl = user.branding.logoUrl;
+      user.branding.logoUrl = newUrl;
       await user.save();
-      
+      await removeFile(oldUrl);
+
       res.json({
         message: 'Logo uploaded successfully',
         logoUrl: user.branding.logoUrl
       });
     } catch (error) {
+      if (error.status === 400) return res.status(400).json({ message: error.message });
       console.error('Error uploading logo:', error);
       res.status(500).json({ message: 'Server error' });
     }
@@ -162,8 +136,7 @@ router.delete('/logo', auth, checkFeatureAccess('customBranding'), async (req, r
     
     // Delete file
     try {
-      const logoPath = path.join(__dirname, '..', user.branding.logoUrl);
-      await fs.unlink(logoPath);
+      await removeFile(user.branding.logoUrl);
     } catch (error) {
       console.error('Error deleting logo file:', error);
     }
@@ -189,8 +162,7 @@ router.post('/reset', auth, checkFeatureAccess('customBranding'), async (req, re
     // Delete logo if exists
     if (user.branding.logoUrl) {
       try {
-        const logoPath = path.join(__dirname, '..', user.branding.logoUrl);
-        await fs.unlink(logoPath);
+        await removeFile(user.branding.logoUrl);
       } catch (error) {
         console.error('Error deleting logo file:', error);
       }
@@ -304,9 +276,9 @@ function generateBrandedPreview(branding, proposalText) {
 </head>
 <body>
   <div class="header">
-    ${branding.logoUrl ? `<img src="${branding.logoUrl}" alt="Logo" class="logo">` : ''}
-    ${branding.companyName ? `<div class="company-name">${branding.companyName}</div>` : ''}
-    ${branding.tagline ? `<div class="tagline">${branding.tagline}</div>` : ''}
+    ${branding.logoUrl ? `<img src="${escapeHtml(displayUrl(branding.logoUrl))}" alt="Logo" class="logo">` : ''}
+    ${branding.companyName ? `<div class="company-name">${escapeHtml(branding.companyName)}</div>` : ''}
+    ${branding.tagline ? `<div class="tagline">${escapeHtml(branding.tagline)}</div>` : ''}
   </div>
   
   <div class="content">
@@ -316,8 +288,8 @@ function generateBrandedPreview(branding, proposalText) {
   <a href="#" class="cta-button">Let's Work Together</a>
   
   <div class="footer">
-    ${branding.companyName || 'Your Company'}
-    ${branding.website ? ` | ${branding.website}` : ''}
+    ${escapeHtml(branding.companyName || 'Your Company')}
+    ${branding.website ? ` | ${escapeHtml(branding.website)}` : ''}
   </div>
 </body>
 </html>

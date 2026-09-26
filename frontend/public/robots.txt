@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /p/
+Disallow: /oauth
+Disallow: /reset-password
+
+Sitemap: https://lunarbid.ai/sitemap.xml

@@ -38,11 +38,12 @@ const getTransporter = () => {
 };
 
 // Returns { sent: boolean }. Never throws to the caller unless forced.
-const sendMail = async ({ to, subject, html, text }) => {
+const sendMail = async ({ to, subject, html, text, replyTo }) => {
   if (!isConfigured()) return { sent: false, reason: 'not_configured' };
   try {
     await getTransporter().sendMail({
       from: fromAddress(),
+      ...(replyTo ? { replyTo } : {}),
       to,
       subject,
       text,

@@ -18,7 +18,11 @@ const Login = ({ onSwitch }) => {
     const p = new URLSearchParams(window.location.search);
     const e = p.get('error');
     if (e === 'oauth_unconfigured') return t('auth.oauth.unconfigured', { provider: (p.get('provider') || 'OAuth').replace(/^./, (c) => c.toUpperCase()) });
+    if (e === 'oauth_unverified_email') return t('auth.oauth.unverified');
     if (e === 'oauth_failed' || e === 'oauth_no_email') return t('auth.oauth.failed');
+    const session = p.get('session');
+    if (session === 'revoked') return t('auth.login.sessionRevoked');
+    if (session === 'expired') return t('auth.login.sessionExpired');
     return '';
   });
 
@@ -226,11 +230,11 @@ const Login = ({ onSwitch }) => {
                 <div className="space-y-5">
                   {/* Email */}
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
+                    <label htmlFor="login-field-1" className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
                       <Mail className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                       {t('auth.login.email')}
                     </label>
-                    <input
+                    <input id="login-field-1"
                       type="email"
                       required
                       value={formData.email}
@@ -242,11 +246,11 @@ const Login = ({ onSwitch }) => {
 
                   {/* Password */}
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
+                    <label htmlFor="login-field-2" className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
                       <Lock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                       {t('auth.login.password')}
                     </label>
-                    <input
+                    <input id="login-field-2"
                       type="password"
                       required
                       value={formData.password}

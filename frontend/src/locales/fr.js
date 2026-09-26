@@ -1,5 +1,18 @@
 // French translations
 export const fr = {
+    a11y: {
+      close: "Fermer",
+      dismiss: "Masquer",
+      edit: "Modifier la proposition",
+      export: "Exporter la proposition",
+      share: "Copier le lien de partage",
+      send: "Envoyer la proposition par e-mail",
+      copy: "Copier la proposition",
+      copied: "Copié",
+      deleteClient: "Supprimer la fiche client",
+      darkMode: "Passer en mode sombre",
+      lightMode: "Passer en mode clair"
+    },
   // Landing Page
   landing: {
     hero: {
@@ -84,7 +97,20 @@ export const fr = {
 
   // Auth
   auth: {
+    verify: {
+      working: "Confirmation de votre e-mail...",
+      done: "Votre e-mail est confirmé. Tout est prêt.",
+      invalid: "Ce lien de confirmation est invalide ou a expiré. Demandez-en un nouveau depuis votre tableau de bord.",
+      toDashboard: "Aller au tableau de bord",
+      toLogin: "Se connecter",
+      banner: "Veuillez confirmer votre adresse e-mail ({{email}}) pour utiliser les fonctionnalités d'IA. Nous vous avons envoyé un lien.",
+      resend: "Renvoyer le lien",
+      resent: "Un nouveau lien de confirmation a été envoyé à {{email}}.",
+      resendError: "Impossible d'envoyer l'e-mail. Veuillez réessayer plus tard."
+    },
     login: {
+      sessionExpired: "Votre session a expiré. Veuillez vous reconnecter.",
+      sessionRevoked: "Vous avez été déconnecté car votre mot de passe a changé ou vous vous êtes déconnecté partout. Veuillez vous reconnecter.",
       title: "Bon Retour",
       subtitle: "Connectez-vous à votre compte",
       email: "Email",
@@ -154,6 +180,7 @@ export const fr = {
       backToLogin: "Retour à la connexion"
     },
     oauth: {
+      unverified: "Votre adresse e-mail n'est pas vérifiée auprès de ce fournisseur. Vérifiez-la, ou connectez-vous avec votre e-mail et votre mot de passe.",
       signingIn: "Connexion en cours…",
       failed: "Échec de la connexion. Veuillez réessayer.",
       unconfigured: "La connexion via {{provider}} n'est pas encore configurée."
@@ -194,6 +221,10 @@ export const fr = {
       aiReady: "IA Prête"
     },
     generate: {
+      stageReading: "Lecture de l'offre...",
+      stageWriting: "Rédaction de votre proposition...",
+      stagePolishing: "Peaufinage du texte...",
+      stageSlow: "Plus long que d'habitude : passage à un fournisseur d'IA de secours. Cela peut prendre jusqu'à une minute.",
       templateNotice: "Nos fournisseurs d'IA sont saturés : voici un modèle de départ, pas un brouillon rédigé par l'IA. Il n'a pas été décompté de votre limite. Réessayez dans une minute.",
       title: "Générer une Proposition",
       jobTitle: "Titre du Poste",
@@ -247,7 +278,7 @@ export const fr = {
       titleSend: "Envoyer la proposition",
       toastSendMissing: "Veuillez renseigner l'e-mail du destinataire et l'objet",
       toastNoProposal: "Générez d'abord une proposition.",
-      toastSent: "Proposition marquée comme envoyée !",
+      toastSent: "Proposition envoyée à {{email}}. Les réponses arriveront directement dans votre boîte mail.",
       toastSendFailed: "Échec de l'envoi de la proposition. Veuillez réessayer.",
       toastPopup: "Veuillez autoriser les fenêtres contextuelles pour exporter en PDF.",
       toastShared: "Lien public de partage copié dans le presse-papiers !",
@@ -266,6 +297,7 @@ export const fr = {
       send: "Envoyer"
     },
     analyzer: {
+      noProfileScore: "Ajoutez votre métier et vos compétences dans Profil pour obtenir un score de correspondance.",
       button: "Analyser l'Offre",
       view: "Voir l'analyse IA",
       reanalyze: "Ré-analyser",
@@ -298,6 +330,9 @@ export const fr = {
       markdown: "Markdown"
     },
     history: {
+      loadMore: "Charger les propositions plus anciennes",
+      loadingMore: "Chargement...",
+      loadMoreError: "Impossible de charger plus de propositions. Veuillez réessayer.",
       title: "Historique des Propositions",
       noProposals: "Aucune proposition pour le moment",
       generateFirst: "Générez votre première proposition gagnante pour la voir ici!",
@@ -372,6 +407,8 @@ export const fr = {
       submitFailed: "Échec de l'envoi du ticket. Veuillez réessayer."
     },
     subscription: {
+      loadError: "Impossible de charger votre abonnement. Vérifiez votre connexion et réessayez.",
+      retry: "Réessayer",
       yourSubscription: "Votre Abonnement",
       manageBilling: "Gérer la facturation",
       checkoutSuccess: "Paiement reçu, merci ! Votre offre est en cours d'activation.",
@@ -408,6 +445,31 @@ export const fr = {
         pro: ["Propositions illimitées", "Traitement IA prioritaire", "Analyses avancées", "Marque personnalisée", "Support prioritaire"],
         agency: ["Tout ce qui est dans Pro", "Collaboration d'équipe", "5 membres d'équipe", "Marque en marque blanche", "Accès API", "Support dédié"]
       }
+    },
+    security: {
+      title: "Sécurité",
+      current: "Mot de passe actuel",
+      new: "Nouveau mot de passe",
+      change: "Changer le mot de passe",
+      passwordChanged: "Mot de passe modifié. Vos autres appareils ont été déconnectés.",
+      othersHint: "Connecté sur un appareil que vous n'utilisez plus ?",
+      signOutOthers: "Se déconnecter de tous les autres appareils",
+      signedOutOthers: "Déconnecté de tous les autres appareils.",
+      error: "Une erreur est survenue. Veuillez réessayer."
+    },
+    account: {
+      title: "Vos données",
+      subtitle: "Téléchargez une copie de tout le contenu de votre compte, ou supprimez votre compte.",
+      export: "Exporter mes données",
+      exportError: "Impossible de préparer votre export. Veuillez réessayer.",
+      delete: "Supprimer le compte",
+      confirmTitle: "Supprimer votre compte ?",
+      confirmBody: "Cela supprime définitivement vos propositions, clients, statistiques et paramètres, et annule immédiatement tout abonnement. Cette action est irréversible.",
+      passwordLabel: "Saisissez votre mot de passe pour confirmer",
+      emailLabel: "Saisissez votre adresse e-mail ({{email}}) pour confirmer",
+      confirmDelete: "Supprimer définitivement",
+      cancel: "Annuler",
+      deleteError: "Impossible de supprimer votre compte. Veuillez réessayer."
     },
     profile: {
       title: "Profil Freelance",
@@ -457,7 +519,7 @@ export const fr = {
       companyLogo: "Logo de l'Entreprise",
       chooseFile: "Choisir un Fichier",
       removeLogo: "Retirer le Logo",
-      logoSupport: "Formats : JPG, PNG, SVG (max 5 Mo)",
+      logoSupport: "Formats : PNG, JPG, WebP (max 2 Mo)",
       brandColors: "Couleurs de la Marque",
       primaryColor: "Couleur Principale",
       secondaryColor: "Couleur Secondaire",
@@ -472,7 +534,7 @@ export const fr = {
       sampleCta: "Exemple de Bouton d'Action",
       saving: "Enregistrement...",
       save: "Enregistrer la Marque",
-      fileTooLarge: "La taille du fichier doit être inférieure à 5 Mo",
+      fileTooLarge: "La taille du fichier doit être inférieure à 2 Mo",
       logoUploaded: "Logo téléchargé avec succès !",
       logoUploadError: "Erreur lors du téléchargement du logo",
       saved: "Paramètres de marque enregistrés avec succès !",

@@ -55,12 +55,12 @@ const ResetPassword = () => {
             <div className={`p-3 rounded-xl text-sm font-medium ${darkMode ? 'bg-red-900/20 text-red-300 border border-red-800' : 'bg-red-50 text-red-700 border border-red-200'}`}>{error}</div>
           )}
           <div>
-            <label className={label}><Lock className="w-4 h-4 text-brand-500" /> {t('auth.reset.password')}</label>
-            <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('auth.reset.placeholder')} className={input} />
+            <label htmlFor="reset-field-1" className={label}><Lock className="w-4 h-4 text-brand-500" /> {t('auth.reset.password')}</label>
+            <input id="reset-field-1" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('auth.reset.placeholder')} className={input} />
           </div>
           <div>
-            <label className={label}><Lock className="w-4 h-4 text-violet-500" /> {t('auth.reset.confirm')}</label>
-            <input type="password" required minLength={6} value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={t('auth.reset.placeholder')} className={input} />
+            <label htmlFor="reset-field-2" className={label}><Lock className="w-4 h-4 text-violet-500" /> {t('auth.reset.confirm')}</label>
+            <input id="reset-field-2" type="password" required minLength={6} value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={t('auth.reset.placeholder')} className={input} />
           </div>
           <button type="submit" disabled={loading || !token} className="w-full bg-brand-600 hover:bg-brand-700 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-brand-600/25 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
             {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> {t('auth.reset.resetting')}</> : t('auth.reset.submit')}

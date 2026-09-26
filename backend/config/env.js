@@ -39,6 +39,9 @@ function checkEnv() {
     (isProd ? errors : warnings).push('email is not configured: password-reset and support emails cannot be sent');
   }
   if (isProd && !env.SENTRY_DSN) warnings.push('SENTRY_DSN is not set: errors will not be reported');
+  if (isProd && !env.S3_BUCKET) warnings.push('S3_BUCKET is not set: uploaded logos are stored on local disk and may be lost on redeploy');
+  if (isProd && env.S3_BUCKET && !env.S3_PUBLIC_URL) errors.push('S3_PUBLIC_URL is required when S3_BUCKET is set');
+  if (isProd && (!env.BACKEND_URL || /localhost/.test(env.BACKEND_URL))) warnings.push('BACKEND_URL is not set to the public API address (needed for Google/GitHub sign-in)');
 
   return { errors, warnings };
 }

@@ -3,7 +3,7 @@ import { Users, Plus, Search, Edit2, Trash2, Star, StarOff, Loader2, CheckCircle
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../UI/Toast';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
-import axios from 'axios';
+import api from '../../services/api';
 
 const ClientProfiles = () => {
   const { darkMode } = useTheme();
@@ -37,10 +37,10 @@ const ClientProfiles = () => {
   const loadProfiles = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/client-profiles', {
+      const response = await api.get('/client-profiles', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setProfiles(response.data);
+      setProfiles(Array.isArray(response.data) ? response.data : []);
       setHasAccess(true);
     } catch (error) {
       if (error.response?.status === 403) {
@@ -60,13 +60,13 @@ const ClientProfiles = () => {
       
       if (editingProfile) {
         // Update existing profile
-        await axios.put(`/api/client-profiles/${editingProfile._id}`, formData, {
+        await api.put(`/client-profiles/${editingProfile._id}`, formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSuccessMessage(t('dashboard.clients.profileUpdated'));
       } else {
         // Create new profile
-        await axios.post('/api/client-profiles', formData, {
+        await api.post('/client-profiles', formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSuccessMessage(t('dashboard.clients.profileCreated'));
@@ -91,7 +91,7 @@ const ClientProfiles = () => {
     
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`/api/client-profiles/${id}`, {
+      await api.delete(`/client-profiles/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       await loadProfiles();
@@ -104,10 +104,8 @@ const ClientProfiles = () => {
 
   const toggleFavorite = async (profile) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.patch(`/api/client-profiles/${profile._id}/favorite`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // The update route accepts isFavorite (there is no separate favorite endpoint).
+      await api.put(`/client-profiles/${profile._id}`, { isFavorite: !profile.isFavorite });
       await loadProfiles();
     } catch (error) {
       console.error('Error toggling favorite:', error);
@@ -350,7 +348,7 @@ const ClientProfiles = () => {
                   <Edit2 className="w-4 h-4" />
                   {t('dashboard.clients.edit')}
                 </button>
-                <button
+                <button aria-label={t('a11y.deleteClient')}
                   onClick={() => handleDelete(profile._id)}
                   className="px-4 py-2 rounded-lg font-semibold transition-all text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                 >
@@ -370,7 +368,7 @@ const ClientProfiles = () => {
               <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>
                 {editingProfile ? t('dashboard.clients.editProfile') : t('dashboard.clients.newProfile')}
               </h3>
-              <button
+              <button aria-label={t('a11y.close')}
                 onClick={() => {
                   setShowModal(false);
                   resetForm();
@@ -384,10 +382,10 @@ const ClientProfiles = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Profile Name */}
               <div>
-                <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                <label htmlFor="client-field-1" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                   {t('dashboard.clients.profileName')} *
                 </label>
-                <input
+                <input id="client-field-1"
                   type="text"
                   required
                   value={formData.profileName}
@@ -400,10 +398,10 @@ const ClientProfiles = () => {
               {/* Company & Industry */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                  <label htmlFor="client-field-2" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                     {t('dashboard.clients.companyName')}
                   </label>
-                  <input
+                  <input id="client-field-2"
                     type="text"
                     value={formData.companyName}
                     onChange={(e) => setFormData({...formData, companyName: e.target.value})}
@@ -411,10 +409,10 @@ const ClientProfiles = () => {
                   />
                 </div>
                 <div>
-                  <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                  <label htmlFor="client-field-3" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                     {t('dashboard.clients.industry')}
                   </label>
-                  <input
+                  <input id="client-field-3"
                     type="text"
                     value={formData.industry}
                     onChange={(e) => setFormData({...formData, industry: e.target.value})}
@@ -425,10 +423,10 @@ const ClientProfiles = () => {
 
               {/* Contact Info */}
               <div>
-                <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                <label htmlFor="client-field-4" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                   {t('dashboard.clients.contactPerson')}
                 </label>
-                <input
+                <input id="client-field-4"
                   type="text"
                   value={formData.contactPerson}
                   onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
@@ -438,10 +436,10 @@ const ClientProfiles = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                  <label htmlFor="client-field-5" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                     {t('dashboard.clients.email')}
                   </label>
-                  <input
+                  <input id="client-field-5"
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
@@ -449,10 +447,10 @@ const ClientProfiles = () => {
                   />
                 </div>
                 <div>
-                  <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                  <label htmlFor="client-field-6" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                     {t('dashboard.clients.phone')}
                   </label>
-                  <input
+                  <input id="client-field-6"
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
@@ -464,10 +462,10 @@ const ClientProfiles = () => {
               {/* Preferences */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                  <label htmlFor="client-field-7" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                     {t('dashboard.clients.preferredTone')}
                   </label>
-                  <select
+                  <select id="client-field-7"
                     value={formData.preferredTone}
                     onChange={(e) => setFormData({...formData, preferredTone: e.target.value})}
                     className={`w-full px-4 py-3 rounded-lg border-2 ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
@@ -478,10 +476,10 @@ const ClientProfiles = () => {
                   </select>
                 </div>
                 <div>
-                  <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                  <label htmlFor="client-field-8" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                     {t('dashboard.clients.preferredStyle')}
                   </label>
-                  <select
+                  <select id="client-field-8"
                     value={formData.preferredStyle}
                     onChange={(e) => setFormData({...formData, preferredStyle: e.target.value})}
                     className={`w-full px-4 py-3 rounded-lg border-2 ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
@@ -495,10 +493,10 @@ const ClientProfiles = () => {
 
               {/* Notes */}
               <div>
-                <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                <label htmlFor="client-field-9" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                   {t('dashboard.clients.notes')}
                 </label>
-                <textarea
+                <textarea id="client-field-9"
                   value={formData.notes}
                   onChange={(e) => setFormData({...formData, notes: e.target.value})}
                   rows={3}

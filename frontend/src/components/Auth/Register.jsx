@@ -234,11 +234,11 @@ const Register = ({ onSwitch }) => {
                 <form onSubmit={handleSubmit} className="space-y-5">
                   {/* Full Name */}
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
+                    <label htmlFor="register-field-1" className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
                       <User className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                       {t('auth.register.fullName')}
                     </label>
-                    <input
+                    <input id="register-field-1"
                       type="text"
                       required
                       value={formData.name}
@@ -250,11 +250,11 @@ const Register = ({ onSwitch }) => {
 
                   {/* Email */}
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
+                    <label htmlFor="register-field-2" className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
                       <Mail className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                       {t('auth.register.emailAddress')}
                     </label>
-                    <input
+                    <input id="register-field-2"
                       type="email"
                       required
                       value={formData.email}
@@ -266,11 +266,11 @@ const Register = ({ onSwitch }) => {
 
                   {/* Password */}
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
+                    <label htmlFor="register-field-3" className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
                       <Lock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                       {t('auth.register.password')}
                     </label>
-                    <input
+                    <input id="register-field-3"
                       type="password"
                       required
                       value={formData.password}
@@ -282,11 +282,11 @@ const Register = ({ onSwitch }) => {
 
                   {/* Confirm Password */}
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
+                    <label htmlFor="register-field-4" className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
                       <Lock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                       {t('auth.register.confirmPassword')}
                     </label>
-                    <input
+                    <input id="register-field-4"
                       type="password"
                       required
                       value={formData.confirmPassword}

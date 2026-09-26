@@ -1,13 +1,15 @@
 // src/components/DarkModeToggle.jsx
 import React from 'react';
+import { useLanguage } from '../locales/LanguageContext.jsx';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const DarkModeToggle = () => {
   const { darkMode, toggleTheme } = useTheme();
+  const { t } = useLanguage();
 
   return (
-    <button
+    <button aria-label={darkMode ? t('a11y.lightMode') : t('a11y.darkMode')}
       onClick={toggleTheme}
       className={`
         relative w-14 h-8 flex items-center rounded-full p-1

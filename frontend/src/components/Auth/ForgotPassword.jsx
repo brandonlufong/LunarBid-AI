@@ -54,10 +54,10 @@ const ForgotPassword = () => {
       ) : (
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label className={`block text-sm font-bold mb-2 flex items-center gap-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+            <label htmlFor="forgot-field-1" className={`block text-sm font-bold mb-2 flex items-center gap-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
               <Mail className="w-4 h-4 text-brand-500" /> {t('auth.forgot.email')}
             </label>
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth.forgot.emailPlaceholder')} className={input} />
+            <input id="forgot-field-1" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth.forgot.emailPlaceholder')} className={input} />
           </div>
           <button type="submit" disabled={loading} className="w-full bg-brand-600 hover:bg-brand-700 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-brand-600/25 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
             {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> {t('auth.forgot.sending')}</> : t('auth.forgot.submit')}

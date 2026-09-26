@@ -10,7 +10,7 @@ import { useToast } from '../UI/Toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TEMPLATE_META } from '../../config/proposalTemplates';
 
-const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatureAccess }) => {
+const ProposalForm = ({ onProposalGenerated, editingProposal }) => {
   const { darkMode } = useTheme();
   const { t } = useLanguage();
   const toast = useToast();
@@ -28,6 +28,15 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
   const [editedProposal, setEditedProposal] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Seconds since generation started, for the progress messages.
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!loading) { setElapsed(0); return; }
+    const started = Date.now();
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [loading]);
+  const loadingStage = elapsed < 6 ? 'stageReading' : elapsed < 14 ? 'stageWriting' : elapsed < 20 ? 'stagePolishing' : 'stageSlow';
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(null);
   const [usageInfo, setUsageInfo] = useState(null);
@@ -100,7 +109,9 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
       }
       if (onProposalGenerated) onProposalGenerated();
     } catch (err) {
-      if (err.response?.status === 403) {
+      if (err.response?.data?.code === 'email_unverified') {
+        setError({ type: 'general', message: err.response.data.message });
+      } else if (err.response?.status === 403) {
         const errorData = err.response.data;
         setError({
           type: 'limit',
@@ -251,16 +262,18 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
 
     setSending(true);
     try {
-      await sendProposal(proposalId, sendData);
+      // Send exactly what is on screen, including unsaved edits.
+      await sendProposal(proposalId, { ...sendData, content: getProposalText() });
       setShowSendModal(false);
+      toast.success(t('dashboard.generate.toastSent', { email: sendData.recipientEmail }));
       setSendData({ recipientEmail: '', subject: '', message: '' });
-      toast.success(t('dashboard.generate.toastSent'));
 
       // Refresh proposal history if callback exists
       if (onProposalGenerated) onProposalGenerated();
     } catch (error) {
       console.error('Error sending proposal:', error);
-      toast.error(t('dashboard.generate.toastSendFailed'));
+      // Show the server's reason (not set up, daily limit, delivery failure).
+      toast.error(error.response?.data?.message || t('dashboard.generate.toastSendFailed'));
     } finally {
       setSending(false);
     }
@@ -439,10 +452,10 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Job Title */}
           <div>
-            <label className={labelClasses}>
+            <label htmlFor="proposal-field-1" className={labelClasses}>
               {t('dashboard.generate.jobTitle')} <span className="text-red-500">*</span>
             </label>
-            <input
+            <input id="proposal-field-1"
               type="text"
               required
               value={formData.jobTitle}
@@ -454,10 +467,10 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
 
           {/* Job Description */}
           <div>
-            <label className={labelClasses}>
+            <label htmlFor="proposal-field-2" className={labelClasses}>
               {t('dashboard.generate.jobDescription')} <span className="text-red-500">*</span>
             </label>
-            <textarea
+            <textarea id="proposal-field-2"
               required
               value={formData.jobDescription}
               onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
@@ -506,8 +519,8 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
           {/* Client Name and Budget */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={labelClasses}>{t('dashboard.generate.clientName')}</label>
-              <input
+              <label htmlFor="proposal-field-3" className={labelClasses}>{t('dashboard.generate.clientName')}</label>
+              <input id="proposal-field-3"
                 type="text"
                 value={formData.clientName}
                 onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
@@ -516,8 +529,8 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
               />
             </div>
             <div>
-              <label className={labelClasses}>{t('dashboard.generate.budget')}</label>
-              <input
+              <label htmlFor="proposal-field-4" className={labelClasses}>{t('dashboard.generate.budget')}</label>
+              <input id="proposal-field-4"
                 type="text"
                 value={formData.budget}
                 onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
@@ -529,8 +542,8 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
 
           {/* Tone Selector */}
           <div>
-            <label className={labelClasses}>{t('dashboard.generate.tone')}</label>
-            <select
+            <label htmlFor="proposal-field-5" className={labelClasses}>{t('dashboard.generate.tone')}</label>
+            <select id="proposal-field-5"
               value={formData.tone}
               onChange={(e) => setFormData({ ...formData, tone: e.target.value })}
               className={`${inputClasses} cursor-pointer`}
@@ -543,8 +556,8 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
 
           {/* ✅ THEMED Length Selector */}
           <div>
-            <label className={labelClasses}>{t('dashboard.generate.length')}</label>
-            <div className="grid grid-cols-3 gap-3">
+            <label id="proposal-group-6" className={labelClasses}>{t('dashboard.generate.length')}</label>
+            <div role="group" aria-labelledby="proposal-group-6" className="grid grid-cols-3 gap-3">
               {[
                 { value: 'short', label: `📄 ${t('dashboard.generate.lengthShort')}`, desc: t('dashboard.generate.lengthShortDesc') },
                 { value: 'medium', label: `📋 ${t('dashboard.generate.lengthMedium')}`, desc: t('dashboard.generate.lengthMediumDesc') },
@@ -620,7 +633,7 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
           {/* Action Buttons Below Title */}
           {proposal && (
             <div className="flex flex-wrap gap-2">
-              <button
+              <button aria-label={t('a11y.edit')}
                 onClick={() => setIsEditing(!isEditing)}
                 className={`p-3 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg group border-2 ${
                   darkMode 
@@ -655,7 +668,7 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
               </button>
               
               <div className="relative">
-                <button
+                <button aria-label={t('a11y.export')}
                   onClick={() => setShowExport((s) => !s)}
                   className={`flex items-center gap-1 p-3 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg group border-2 ${
                     darkMode
@@ -694,7 +707,7 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
                 )}
               </div>
               
-              <button
+              <button aria-label={t('a11y.share')}
                 onClick={handleShare}
                 className={`p-3 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg group border-2 ${
                   darkMode
@@ -708,7 +721,7 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
                 } group-hover:scale-110 transition-transform`} />
               </button>
 
-              <button
+              <button aria-label={t('a11y.send')}
                 onClick={() => setShowSendModal(true)}
                 className={`p-3 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg group border-2 ${
                   darkMode
@@ -754,8 +767,8 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
               <p className={`text-xl font-bold mb-2 animate-pulse ${darkMode ? 'text-indigo-300' : 'text-indigo-600'}`}>
                 {t('dashboard.generate.craftingTitle')}
               </p>
-              <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                {t('dashboard.generate.craftingHint')}
+              <p role="status" aria-live="polite" className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                {t(`dashboard.generate.${loadingStage}`)}
               </p>
             </div>
           )}
@@ -838,7 +851,7 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
                     <p className={`text-xs truncate ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('dashboard.analyzer.subtitle')}</p>
                   </div>
                 </div>
-                <button
+                <button aria-label={t('a11y.close')}
                   onClick={() => setAnalyzerOpen(false)}
                   className={`p-2 rounded-lg transition-colors flex-shrink-0 ${darkMode ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-white/60 text-slate-500'}`}
                   title={t('dashboard.analyzer.hide')}
@@ -866,11 +879,16 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
                   <>
                     {/* Score */}
                     <div className={`flex items-center gap-4 p-4 rounded-xl border-2 ${darkMode ? 'bg-slate-900/60 border-slate-700' : 'bg-indigo-50/60 border-indigo-100'}`}>
-                      <div className={`text-4xl font-black leading-none ${
-                        analysis.matchScore >= 70 ? 'text-green-500' : analysis.matchScore >= 40 ? 'text-amber-500' : 'text-red-500'
-                      }`}>{analysis.matchScore}<span className="text-lg">%</span></div>
+                      {analysis.matchScore == null ? (
+                        <div className={`text-4xl font-black leading-none ${darkMode ? 'text-slate-500' : 'text-slate-400'}`} aria-hidden="true">–</div>
+                      ) : (
+                        <div className={`text-4xl font-black leading-none ${
+                          analysis.matchScore >= 70 ? 'text-green-500' : analysis.matchScore >= 40 ? 'text-amber-500' : 'text-red-500'
+                        }`}>{analysis.matchScore}<span className="text-lg">%</span></div>
+                      )}
                       <div className="min-w-0">
                         <div className={`text-xs font-semibold uppercase tracking-wide ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('dashboard.analyzer.matchScore')}</div>
+                        {analysis.matchScore == null && <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{t('dashboard.analyzer.noProfileScore')}</p>}
                         {analysis.matchReason && <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{analysis.matchReason}</p>}
                       </div>
                     </div>
@@ -987,7 +1005,7 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
               <h3 className={`text-xl font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                 {t('dashboard.send.title')}
               </h3>
-              <button
+              <button aria-label={t('a11y.close')}
                 onClick={() => setShowSendModal(false)}
                 className={`p-1 rounded-lg transition-colors ${
                   darkMode ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-100 text-slate-500'
@@ -1000,10 +1018,10 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
             <div className="space-y-4">
               {/* Recipient Email */}
               <div>
-                <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                <label htmlFor="proposal-field-7" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                   {t('dashboard.send.recipientEmail')} <span className="text-red-500">*</span>
                 </label>
-                <input
+                <input id="proposal-field-7"
                   type="email"
                   value={sendData.recipientEmail}
                   onChange={(e) => setSendData({ ...sendData, recipientEmail: e.target.value })}
@@ -1019,10 +1037,10 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
 
               {/* Subject */}
               <div>
-                <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                <label htmlFor="proposal-field-8" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                   {t('dashboard.send.subject')} <span className="text-red-500">*</span>
                 </label>
-                <input
+                <input id="proposal-field-8"
                   type="text"
                   value={sendData.subject}
                   onChange={(e) => setSendData({ ...sendData, subject: e.target.value })}
@@ -1038,10 +1056,10 @@ const ProposalForm = ({ onProposalGenerated, editingProposal, userPlan, hasFeatu
 
               {/* Message */}
               <div>
-                <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                <label htmlFor="proposal-field-9" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                   {t('dashboard.send.message')}
                 </label>
-                <textarea
+                <textarea id="proposal-field-9"
                   value={sendData.message}
                   onChange={(e) => setSendData({ ...sendData, message: e.target.value })}
                   placeholder={t('dashboard.send.messagePlaceholder')}

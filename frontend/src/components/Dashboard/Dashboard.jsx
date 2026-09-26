@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { getSubscription } from '../../services/api';
+import VerifyEmailBanner from './VerifyEmailBanner';
+
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Sparkles, FileText, Zap, Users, BarChart3, Palette, User, Crown, Calculator } from 'lucide-react';
 import ProposalForm from './ProposalForm';
 import ProposalHistory from './ProposalHistory';
 import ClientProfiles from './ClientProfiles';
-import Analytics from './Analytics';
 import Branding from './Branding';
 import ProfileSetup from './ProfileSetup';
 import Subscription from './Subscription';
@@ -12,6 +14,9 @@ import PricingCalculator from './PricingCalculator';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
+
+// Analytics pulls in the chart library, so it loads only when its tab is opened.
+const Analytics = lazy(() => import('./Analytics'));
 
 const Dashboard = () => {
   const location = useLocation();
@@ -23,35 +28,24 @@ const Dashboard = () => {
   const [editingProposal, setEditingProposal] = useState(null);
   const [userPlan, setUserPlan] = useState('free');
   const [subscriptionRefresh, setSubscriptionRefresh] = useState(0);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  // Fetch subscription on mount and when subscriptionRefresh changes
+  // Load the plan on mount and whenever the subscription changes.
   useEffect(() => {
-    fetchSubscription();
+    getSubscription()
+      .then((res) => setUserPlan(res.data.subscription.plan))
+      .catch((error) => console.error('Error fetching subscription:', error));
   }, [subscriptionRefresh]);
 
-  const fetchSubscription = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/subscription', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await response.json();
-      console.log('📦 Subscription loaded:', data.subscription.plan);
-      setUserPlan(data.subscription.plan);
-    } catch (error) {
-      console.error('❌ Error fetching subscription:', error);
-    }
-  };
-
+  // Open the tab requested by navigation state or ?tab= (Stripe returns to ?tab=subscription).
+  // Syncing from the router is intentional here.
   useEffect(() => {
     if (location.state?.tab) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveTab(location.state.tab);
       return;
     }
     // ?tab=subscription (used when Stripe Checkout or the billing portal returns here)
     const tab = new URLSearchParams(location.search).get('tab');
-    if (tab) setActiveTab(tab);
+    if (tab) setActiveTab(tab);  
   }, [location.state, location.search]);
 
   // Dashboard menu items
@@ -275,6 +269,8 @@ const Dashboard = () => {
                 </div>
               )}
 
+              <VerifyEmailBanner />
+
               {/* Content */}
               <div className="transition-colors duration-500">
                 {activeTab === 'generate' && (
@@ -293,7 +289,11 @@ const Dashboard = () => {
                   />
                 )}
                 {activeTab === 'clients' && <ClientProfiles />}
-                {activeTab === 'analytics' && <Analytics />}
+                {activeTab === 'analytics' && (
+                  <Suspense fallback={<div className="py-16 text-center text-sm opacity-70" role="status">…</div>}>
+                    <Analytics />
+                  </Suspense>
+                )}
                 {activeTab === 'calculator' && <PricingCalculator />}
                 {activeTab === 'branding' && <Branding />}
                 {activeTab === 'profile' && <ProfileSetup />}

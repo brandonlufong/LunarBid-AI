@@ -3,7 +3,7 @@ import { TrendingUp, Award, DollarSign, Clock, BarChart3, PieChart, Loader2, Dow
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../UI/Toast';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
-import axios from 'axios';
+import api from '../../services/api';
 import {
   LineChart, Line, BarChart, Bar, PieChart as RechartsPie, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -25,7 +25,7 @@ const Analytics = () => {
   const loadAnalytics = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/analytics/dashboard', {
+      const response = await api.get('/analytics/dashboard', {
         headers: { Authorization: `Bearer ${token}` },
         params: { period }
       });
@@ -44,7 +44,7 @@ const Analytics = () => {
   const exportData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/analytics/export?format=csv', {
+      const response = await api.get('/analytics/export?format=csv', {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       });

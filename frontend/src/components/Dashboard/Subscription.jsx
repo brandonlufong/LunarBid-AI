@@ -93,7 +93,21 @@ const Subscription = ({ onSubscriptionChange }) => {
     );
   }
 
-  const { subscription, usage, limits } = subscriptionData;
+  // Loading failed (API unreachable, signed out...): offer a retry instead of crashing.
+  if (!subscriptionData?.subscription) {
+    return (
+      <div role="alert" className={`rounded-2xl border-2 p-8 text-center ${darkMode ? 'border-slate-700 bg-slate-800 text-slate-200' : 'border-slate-200 bg-white text-slate-700'}`}>
+        <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-amber-500" aria-hidden="true" />
+        <p className="font-semibold">{t('dashboard.subscription.loadError')}</p>
+        <button type="button" onClick={() => { setLoading(true); loadSubscription(); }}
+          className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700">
+          {t('dashboard.subscription.retry')}
+        </button>
+      </div>
+    );
+  }
+
+  const { subscription, usage = {}, limits = {} } = subscriptionData;
   const currentPlan = subscription.plan;
 
   const plans = [
@@ -154,7 +168,7 @@ const Subscription = ({ onSubscriptionChange }) => {
               {successMessage}
             </p>
           </div>
-          <button
+          <button aria-label={t('a11y.dismiss')}
             onClick={() => setSuccessMessage('')}
             className={`transition-colors ${darkMode ? 'text-green-400 hover:text-green-200' : 'text-green-600 hover:text-green-800'}`}
           >

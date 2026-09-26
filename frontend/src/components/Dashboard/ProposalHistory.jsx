@@ -14,18 +14,30 @@ const ProposalHistory = ({ refreshTrigger, onEditProposal, onDuplicateProposal }
   const [selectedProposal, setSelectedProposal] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
 
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // First page on mount and whenever a proposal is added elsewhere.
   useEffect(() => {
-    loadHistory();
+    getProposalHistory()
+      .then((response) => {
+        setProposals(response.data.items || []);
+        setNextCursor(response.data.nextCursor || null);
+      })
+      .catch(() => console.error('Error loading history'))
+      .finally(() => setLoading(false));
   }, [refreshTrigger]);
 
-  const loadHistory = async () => {
+  const loadMore = async () => {
+    setLoadingMore(true);
     try {
-      const response = await getProposalHistory();
-      setProposals(response.data);
-    } catch (error) {
-      console.error('Error loading history');
+      const response = await getProposalHistory(nextCursor);
+      setProposals((prev) => [...prev, ...(response.data.items || [])]);
+      setNextCursor(response.data.nextCursor || null);
+    } catch {
+      toast.error(t('dashboard.history.loadMoreError'));
     } finally {
-      setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -122,7 +134,7 @@ const ProposalHistory = ({ refreshTrigger, onEditProposal, onDuplicateProposal }
           <p className={`text-sm mt-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
             {proposals.length === 1
               ? t('dashboard.history.oneGenerated')
-              : t('dashboard.history.countGenerated', { count: proposals.length })}
+              : t('dashboard.history.countGenerated', { count: nextCursor ? `${proposals.length}+` : proposals.length })}
           </p>
         </div>
       </div>
@@ -183,6 +195,16 @@ const ProposalHistory = ({ refreshTrigger, onEditProposal, onDuplicateProposal }
                 </div>
               </div>
             ))}
+            {nextCursor && (
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={loadingMore}
+                className={`w-full rounded-xl border-2 py-3 text-sm font-semibold transition-colors disabled:opacity-60 ${darkMode ? 'border-slate-700 text-slate-200 hover:bg-slate-800' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+              >
+                {loadingMore ? t('dashboard.history.loadingMore') : t('dashboard.history.loadMore')}
+              </button>
+            )}
           </div>
 
           {/* Proposal Preview */}

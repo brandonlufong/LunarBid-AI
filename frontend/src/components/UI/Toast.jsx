@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { useLanguage } from '../../locales/LanguageContext.jsx';
 
 const ToastContext = createContext(null);
 
@@ -37,6 +38,7 @@ const ICON_COLOR = {
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
+  const { t: translate } = useLanguage();
 
   const remove = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -76,7 +78,7 @@ export const ToastProvider = ({ children }) => {
                   >
                     <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${ICON_COLOR[t.type] || ICON_COLOR.info}`} />
                     <p className="flex-1 text-sm font-medium leading-snug">{t.message}</p>
-                    <button onClick={() => remove(t.id)} className="flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
+                    <button aria-label={translate('a11y.dismiss')} onClick={() => remove(t.id)} className="flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
                       <X className="w-4 h-4" />
                     </button>
                   </motion.div>

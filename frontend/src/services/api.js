@@ -23,6 +23,24 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Session ended (expired, revoked by "sign out everywhere"/password change, or invalid):
+// clear it and send the user to sign in with an explanation, instead of failing silently.
+const SESSION_CODES = ['session_expired', 'session_revoked', 'session_invalid', 'no_session'];
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const code = error.response?.data?.code;
+    if (error.response?.status === 401 && SESSION_CODES.includes(code) && localStorage.getItem('token')) {
+      localStorage.removeItem('token');
+      const reason = code === 'session_revoked' ? 'revoked' : 'expired';
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.assign(`/login?session=${reason}`);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Auth APIs
 export const register = (data) => api.post('/auth/register', data);
 export const login = (data) => api.post('/auth/login', data);
@@ -31,6 +49,7 @@ export const forgotPassword = (email) => api.post('/auth/forgot-password', { ema
 export const resetPassword = (token, password) => api.post('/auth/reset-password', { token, password });
 export const getAuthProviders = () => api.get('/auth/providers');
 export const OAUTH_URL = (provider) => `${API_URL}/auth/${provider}`;
+export const exchangeOAuthCode = (code) => api.post('/auth/oauth/exchange', { code });
 
 // Profile APIs
 export const updateProfile = (data) => api.put('/profile', data);
@@ -39,7 +58,8 @@ export const getProfile = () => api.get('/profile');
 // Proposal APIs
 export const generateProposal = (data) => api.post('/proposals/generate', data);
 export const analyzeJob = (data) => api.post('/proposals/analyze', data);
-export const getProposalHistory = () => api.get('/proposals/history');
+// 20 per page, newest first; pass the previous response's nextCursor for the next page.
+export const getProposalHistory = (cursor) => api.get('/proposals/history', { params: cursor ? { cursor } : {} });
 export const getProposal = (id) => api.get(`/proposals/${id}`);
 export const deleteProposal = (id) => api.delete(`/proposals/${id}`);
 export const updateProposal = (id, data) => api.put(`/proposals/${id}`, data);
@@ -79,3 +99,13 @@ export const deleteLogo = () => api.delete('/branding/logo');
 export const resetBranding = () => api.post('/branding/reset');
 
 export default api;
+// Account data: export everything, or delete the account.
+export const exportAccountData = () => api.get('/account/export');
+export const deleteAccount = (confirmation) => api.delete('/account', { data: confirmation });
+
+// Sessions, password and email confirmation
+export const refreshSession = () => api.post('/auth/refresh');
+export const logoutAllDevices = () => api.post('/auth/logout-all');
+export const changePassword = (currentPassword, newPassword) => api.post('/auth/change-password', { currentPassword, newPassword });
+export const verifyEmail = (token) => api.post('/auth/verify-email', { token });
+export const resendVerification = () => api.post('/auth/resend-verification');

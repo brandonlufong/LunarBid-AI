@@ -4,6 +4,16 @@
 
 **Last updated:** 2026-07-21 (session 1)
 
+## PHASE 3 (P2, first batch) — DONE (2026-09-26)
+See `PHASE3_CHANGES.md`. Rules: quotas go through `services/usage.js#reserve` (never increment counters by
+saving the whole user); sessions are issued by `services/session.js` and revoked by bumping tokenVersion;
+AI routes require a confirmed email (`middleware/requireVerifiedEmail.js`).
+
+## PHASE 2 (P1) — DONE (2026-09-26)
+See `PHASE2_CHANGES.md` and `DEPLOYMENT.md`. Rules: all frontend API calls go through `services/api.js`;
+AI prompts come from `backend/services/prompts.js` (never invent profile details); `npm test` and
+`npm run lint` must stay green (CI enforces both).
+
 ## PHASE 1 LAUNCH BLOCKERS — DONE (2026-09-26)
 See `PHASE1_CHANGES.md` for what changed, the Stripe setup checklist and the P1 list that comes next.
 Key rules now in force: access comes only from `billing/access.js#effectivePlan` (Stripe-confirmed status);

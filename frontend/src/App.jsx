@@ -1,21 +1,30 @@
 // src/App.jsx
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './locales/LanguageContext.jsx';
 import { ToastProvider } from './components/UI/Toast';
 import Navbar from './components/navbar';
-import Login from './components/Auth/Login';
-import Register from './components/Auth/Register';
-import Dashboard from './components/Dashboard/Dashboard';
 import LandingPage from './components/LandingPage';
-import PublicProposal from './components/PublicProposal';
-import LegalPage from './components/Legal/LegalPage';
-import ForgotPassword from './components/Auth/ForgotPassword';
-import ResetPassword from './components/Auth/ResetPassword';
-import OAuthCallback from './components/Auth/OAuthCallback';
 import { Loader2 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
+
+// The landing page ships in the main bundle for a fast first paint; everything else loads on demand.
+const Login = lazy(() => import('./components/Auth/Login'));
+const Register = lazy(() => import('./components/Auth/Register'));
+const Dashboard = lazy(() => import('./components/Dashboard/Dashboard'));
+const PublicProposal = lazy(() => import('./components/PublicProposal'));
+const LegalPage = lazy(() => import('./components/Legal/LegalPage'));
+const ForgotPassword = lazy(() => import('./components/Auth/ForgotPassword'));
+const ResetPassword = lazy(() => import('./components/Auth/ResetPassword'));
+const OAuthCallback = lazy(() => import('./components/Auth/OAuthCallback'));
+const VerifyEmail = lazy(() => import('./components/Auth/VerifyEmail'));
+
+const PageLoading = () => (
+  <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Loading">
+    <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" aria-hidden="true" />
+  </div>
+);
 
 const AnimatedRoutes = () => {
   const { user } = useAuth();
@@ -30,6 +39,7 @@ const AnimatedRoutes = () => {
 
   return (
     <AnimatePresence mode="wait">
+      <Suspense fallback={<PageLoading />}>
       <Routes location={location} key={location.pathname}>
         {/* Landing Page */}
         <Route
@@ -91,6 +101,7 @@ const AnimatedRoutes = () => {
         <Route path="/forgot-password" element={<motion.div {...pageTransition}><ForgotPassword /></motion.div>} />
         <Route path="/reset-password" element={<motion.div {...pageTransition}><ResetPassword /></motion.div>} />
         <Route path="/oauth" element={<OAuthCallback />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
 
         {/* Public shared proposal (no auth) */}
         <Route
@@ -110,6 +121,7 @@ const AnimatedRoutes = () => {
         {/* Catch-all → redirect to landing */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </AnimatePresence>
   );
 };
