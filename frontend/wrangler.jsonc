@@ -1,0 +1,13 @@
+// Production frontend: Cloudflare Workers static assets (https://lunarbid.ai).
+// Build: `npm run build` (VITE_API_URL must be set at build time). Deploy: `npx wrangler deploy`.
+// Security headers and caching are in public/_headers (copied into dist/).
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "lunarbid-web",
+  "compatibility_date": "2026-09-25",
+  "assets": {
+    "directory": "./dist",
+    // Every unknown path serves index.html so client-side routes (/dashboard, /p/...) work.
+    "not_found_handling": "single-page-application"
+  }
+}

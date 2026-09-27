@@ -4,6 +4,13 @@
 
 **Last updated:** 2026-07-21 (session 1)
 
+## PRODUCTION POLISH — DONE (2026-09-26)
+Full UI/UX redesign on a design system (see `DESIGN.md`), production config for Cloudflare + Render
+(`DEPLOYMENT.md`, `PRODUCTION_CHECKLIST.md`), report in `LAUNCH_REPORT.md`.
+**Payments:** Stripe is not available to Cameroon-registered businesses → move to Paddle (not built yet).
+The API runs without payment settings; upgrades show "payments aren't available yet".
+QA scripts in `qa/`. Tests: 49 backend; 0 axe violations; 23/23 E2E flows.
+
 ## PHASE 3 (P2, first batch) — DONE (2026-09-26)
 See `PHASE3_CHANGES.md`. Rules: quotas go through `services/usage.js#reserve` (never increment counters by
 saving the whole user); sessions are issued by `services/session.js` and revoked by bumping tokenVersion;

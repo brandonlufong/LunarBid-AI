@@ -1,17 +1,23 @@
-// src/components/PublicProposal.jsx
-// Public, no-auth view of a shared proposal at /p/:token. Branded, responsive.
-import React, { useEffect, useState } from 'react';
-import { useLanguage } from '../locales/LanguageContext.jsx';
-import { useParams } from 'react-router-dom';
+// Public view of a shared proposal (/p/:token). Read by the freelancer's client, so it
+// looks like a document from the freelancer; LunarBid stays in the background.
+import React, { useCallback, useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { Check, Copy, FileWarning, Printer } from 'lucide-react';
 import { getPublicProposal } from '../services/api';
-import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../locales/LanguageContext.jsx';
 import { useToast } from './UI/Toast';
-import { Moon, Sparkles, Copy, Check, Printer, Loader2, FileWarning } from 'lucide-react';
+import { Alert, Avatar, Button, EmptyState, Skeleton } from './ui';
+import { LogoMark } from './app/Logo';
+import { formatDate } from './Dashboard/proposalMeta.jsx';
 
-const PublicProposal = () => {
+const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+export default function PublicProposal() {
   const { token } = useParams();
-  const { darkMode } = useTheme();
-  const { t } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
+  const toast = useToast();
+  const [state, setState] = useState({ status: 'loading' });
+  const [copied, setCopied] = useState(false);
 
   // Shared proposals are private documents: keep them out of search engines.
   useEffect(() => {
@@ -21,131 +27,89 @@ const PublicProposal = () => {
     document.head.appendChild(meta);
     return () => meta.remove();
   }, []);
-  const toast = useToast();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await getPublicProposal(token);
-        setData(res.data);
-      } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const load = useCallback(() => {
+    getPublicProposal(token)
+      .then((res) => {
+        setState({ status: 'ready', data: res.data });
+        document.title = `${res.data.jobTitle} — ${res.data.author?.branding?.companyName || res.data.author?.name || 'LunarBid'}`;
+      })
+      .catch((err) => setState({ status: err.response?.status === 404 ? 'missing' : 'error' }));
   }, [token]);
+  useEffect(() => { load(); }, [load]);
 
-  const copy = () => {
-    navigator.clipboard.writeText(data?.content || '');
-    setCopied(true);
-    toast.success('Copied to clipboard');
-    setTimeout(() => setCopied(false), 2000);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(state.data.content || '');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      toast.error(t('doc.copyError'));
+    }
   };
 
-  const bg = darkMode
-    ? 'bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950'
-    : 'bg-gradient-to-br from-slate-100 via-indigo-50 to-purple-50';
-
-  if (loading) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${bg}`}>
-        <Loader2 className="w-12 h-12 text-indigo-500 animate-spin" />
-      </div>
-    );
-  }
-
-  if (error || !data) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center px-4 ${bg}`}>
-        <div className={`text-center max-w-md p-8 rounded-2xl border-2 ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
-          <FileWarning className="w-14 h-14 mx-auto mb-4 text-amber-500" />
-          <h1 className="text-xl font-bold mb-2">Proposal unavailable</h1>
-          <p className="text-sm opacity-80">This proposal link is invalid, private, or has been revoked.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const branding = data.author?.branding || {};
-  const accent = branding.primaryColor || '#6366f1';
-  const displayName = branding.companyName || data.author?.name || 'LunarBid User';
-  const created = data.createdAt ? new Date(data.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '';
-
-  return (
-    <div className={`min-h-screen py-6 sm:py-12 px-4 ${bg}`}>
-      <div className="max-w-3xl mx-auto">
-        {/* Action bar (hidden when printing) */}
-        <div className="flex justify-end gap-2 mb-4 print:hidden">
-          <button aria-label={copied ? t('a11y.copied') : t('a11y.copy')}
-            onClick={copy}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all ${
-              darkMode ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-            {copied ? 'Copied' : 'Copy'}
-          </button>
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:shadow-lg"
-            style={{ background: accent }}
-          >
-            <Printer className="w-4 h-4" /> Print / PDF
-          </button>
-        </div>
-
-        {/* Document */}
-        <div className={`rounded-2xl shadow-2xl border-2 overflow-hidden ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} print:shadow-none print:border-0`}>
-          {/* Branded header */}
-          <div className="p-6 sm:p-8 border-b-2" style={{ borderColor: `${accent}33` }}>
-            <div className="flex items-center gap-4">
-              {branding.logoUrl ? (
-                <img src={branding.logoUrl} alt={displayName} className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
-              ) : (
-                <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: accent }}>
-                  <span className="text-white text-2xl font-black">{displayName.charAt(0)}</span>
-                </div>
-              )}
-              <div className="min-w-0">
-                <h2 className={`text-xl font-black truncate ${darkMode ? 'text-white' : 'text-slate-900'}`}>{displayName}</h2>
-                {branding.tagline && <p className="text-sm truncate opacity-70" style={{ color: accent }}>{branding.tagline}</p>}
-                {branding.website && <p className={`text-xs truncate ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{branding.website}</p>}
-              </div>
-            </div>
-          </div>
-
-          {/* Title */}
-          <div className="px-6 sm:px-8 pt-6 sm:pt-8">
-            <h1 className={`text-2xl sm:text-3xl font-black ${darkMode ? 'text-white' : 'text-slate-900'}`}>{data.jobTitle}</h1>
-            <p className={`text-sm mt-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              {data.clientName ? `Prepared for ${data.clientName}` : 'Proposal'}{created ? ` · ${created}` : ''}
-            </p>
-          </div>
-
-          {/* Body */}
-          <div className="px-6 sm:px-8 py-6 sm:py-8">
-            <pre className={`whitespace-pre-wrap font-sans text-[15px] leading-relaxed ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-{data.content}
-            </pre>
-          </div>
-        </div>
-
-        {/* Footer badge */}
-        <div className="flex items-center justify-center gap-2 mt-6 opacity-70 print:hidden">
-          <div className="relative">
-            <Moon className={`w-5 h-5 ${darkMode ? 'text-indigo-300' : 'text-indigo-600'}`} />
-            <Sparkles className="w-2.5 h-2.5 text-yellow-400 absolute -top-1 -right-1" />
-          </div>
-          <span className={`text-xs font-semibold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Made with LunarBid</span>
-        </div>
-      </div>
+  const shell = (children) => (
+    <div className="min-h-screen bg-page print:bg-white">
+      <main className="mx-auto w-full max-w-[820px] px-4 py-8 sm:px-6 sm:py-12 print:p-0">{children}</main>
+      <footer className="pb-10 text-center print:pb-0">
+        <Link to="/" className="inline-flex items-center gap-2 text-caption text-muted hover:text-fg">
+          <LogoMark size={16} />{t('public.madeWith')}
+        </Link>
+      </footer>
     </div>
   );
-};
 
-export default PublicProposal;
+  if (state.status === 'loading') {
+    return shell(
+      <div className="rounded-lg border border-line bg-surface p-8 shadow-card sm:p-12" role="status" aria-label={t('common.loading')}>
+        <Skeleton className="mb-8 h-10 w-48" /><Skeleton className="mb-3 h-8 w-2/3" /><Skeleton className="mb-10 h-4 w-40" />
+        <div className="space-y-3">{[100, 95, 98, 80, 96, 60].map((w, i) => <Skeleton key={i} style={{ width: `${w}%` }} />)}</div>
+      </div>
+    );
+  }
+  if (state.status === 'missing') {
+    return shell(
+      <div className="rounded-lg border border-line bg-surface shadow-card">
+        <EmptyState icon={FileWarning} title={t('public.missingTitle')} description={t('public.missingBody')} />
+      </div>
+    );
+  }
+  if (state.status === 'error') {
+    return shell(<Alert tone="danger" title={t('public.errorTitle')} action={<Button size="sm" variant="secondary" onClick={() => { setState({ status: 'loading' }); load(); }}>{t('common.retry')}</Button>}>{t('public.errorBody')}</Alert>);
+  }
+
+  const { data } = state;
+  const branding = data.author?.branding || {};
+  const accent = HEX.test(branding.primaryColor || '') ? branding.primaryColor : null;
+  const name = branding.companyName || data.author?.name || '';
+  const meta = [data.clientName && t('public.preparedFor', { name: data.clientName }), formatDate(data.createdAt, currentLanguage)].filter(Boolean).join(' · ');
+
+  return shell(
+    <>
+      <div className="mb-4 flex justify-end gap-2 print:hidden">
+        <Button variant="secondary" size="sm" leftIcon={copied ? Check : Copy} onClick={copy}>{copied ? t('doc.copiedShort') : t('public.copy')}</Button>
+        <Button variant="secondary" size="sm" leftIcon={Printer} onClick={() => window.print()}>{t('public.print')}</Button>
+      </div>
+      <article className="overflow-hidden rounded-lg border border-line bg-surface shadow-card print:border-0 print:shadow-none"
+        style={accent ? { borderTop: `3px solid ${accent}` } : undefined} aria-labelledby="public-title">
+        <div className="px-6 py-8 sm:px-14 sm:py-12 print:px-0">
+          <header className="mb-10 flex items-center gap-3.5">
+            {branding.logoUrl
+              ? <img src={branding.logoUrl} alt="" className="h-12 w-12 rounded-md object-contain" />
+              : <Avatar name={name} size={44} />}
+            <div className="min-w-0">
+              <p className="truncate text-body font-semibold text-fg">{name}</p>
+              {branding.tagline && <p className="truncate text-small text-muted">{branding.tagline}</p>}
+              {branding.website && <p className="truncate text-caption text-muted">{branding.website}</p>}
+            </div>
+          </header>
+          <h1 id="public-title" className="font-document text-[1.875rem] font-medium leading-tight text-fg sm:text-[2.125rem]">{data.jobTitle}</h1>
+          {meta && <p className="mt-2 text-small text-muted">{meta}</p>}
+          <div className="mt-8 border-t border-line pt-8">
+            <div className="prose-document max-w-[68ch]">{data.content}</div>
+          </div>
+        </div>
+      </article>
+    </>
+  );
+}

@@ -1,319 +1,188 @@
-import React, { useState, useEffect } from 'react';
-import { getProposalHistory, deleteProposal } from '../../services/api';
-import { FileText, Trash2, Eye, Loader2, Clock, DollarSign, Sparkles, Copy, Edit, RefreshCw, Download, Share2 } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
-import { useToast } from '../UI/Toast';
+// Proposal history: filterable list + the selected proposal as a document.
+// On small screens the list and the document are separate views.
+import React, { useCallback, useEffect, useState } from 'react';
+import { ArrowLeft, Copy as CopyIcon, FilePlus2, Files, Trash2 } from 'lucide-react';
+import { deleteProposal, getProposal, getProposalHistory, updateProposalStatus } from '../../services/api';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
+import { useToast } from '../UI/Toast';
+import { Alert, Button, Card, EmptyState, IconButton, Modal, PageHeader, Select, Skeleton, cn } from '../ui';
+import ProposalDocument from '../proposal/ProposalDocument';
+import { STATUSES, StatusBadge, formatDate } from './proposalMeta.jsx';
 
-const ProposalHistory = ({ refreshTrigger, onEditProposal, onDuplicateProposal }) => {
-  const { darkMode } = useTheme();
+const FILTERS = ['all', ...STATUSES];
+
+export default function ProposalHistory({ refreshTrigger, onEditProposal, selectedId, onNavigate }) {
+  const { t, currentLanguage } = useLanguage();
   const toast = useToast();
-  const { t } = useLanguage();
-  const [proposals, setProposals] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedProposal, setSelectedProposal] = useState(null);
-  const [copiedId, setCopiedId] = useState(null);
-
+  const [filter, setFilter] = useState('all');
+  const [items, setItems] = useState(null);
   const [nextCursor, setNextCursor] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  // First page on mount and whenever a proposal is added elsewhere.
+  const load = useCallback(() => {
+    setFailed(false);
+    setItems(null);
+    getProposalHistory(null, filter === 'all' ? undefined : filter)
+      .then((r) => { setItems(r.data.items || []); setNextCursor(r.data.nextCursor || null); })
+      .catch(() => { setItems([]); setFailed(true); });
+  }, [filter]);
+
+  useEffect(() => { load(); }, [load, refreshTrigger]);
+
+  // Open the proposal given in the URL (e.g. from Home), even if it isn't on the first page.
   useEffect(() => {
-    getProposalHistory()
-      .then((response) => {
-        setProposals(response.data.items || []);
-        setNextCursor(response.data.nextCursor || null);
-      })
-      .catch(() => console.error('Error loading history'))
-      .finally(() => setLoading(false));
-  }, [refreshTrigger]);
+    if (!selectedId) return;
+    const hit = items?.find((p) => p._id === selectedId);
+    if (hit) setSelected(hit); // eslint-disable-line react-hooks/set-state-in-effect
+    else if (items) getProposal(selectedId).then((r) => setSelected(r.data)).catch(() => {});
+  }, [selectedId, items]);
 
   const loadMore = async () => {
     setLoadingMore(true);
     try {
-      const response = await getProposalHistory(nextCursor);
-      setProposals((prev) => [...prev, ...(response.data.items || [])]);
-      setNextCursor(response.data.nextCursor || null);
+      const r = await getProposalHistory(nextCursor, filter === 'all' ? undefined : filter);
+      setItems((prev) => [...prev, ...(r.data.items || [])]);
+      setNextCursor(r.data.nextCursor || null);
     } catch {
-      toast.error(t('dashboard.history.loadMoreError'));
+      toast.error(t('history.loadMoreError'));
     } finally {
       setLoadingMore(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm(t('dashboard.history.deleteConfirm'))) return;
+  const select = (p) => { setSelected(p); onNavigate?.('history', { id: p._id }); };
+  const back = () => { setSelected(null); onNavigate?.('history'); };
+
+  const patchLocal = (id, patch) => {
+    setItems((prev) => prev?.map((p) => (p._id === id ? { ...p, ...patch } : p)));
+    setSelected((s) => (s && s._id === id ? { ...s, ...patch } : s));
+  };
+
+  const changeStatus = async (status) => {
+    const id = selected._id;
+    const previous = selected.status;
+    patchLocal(id, { status });
     try {
-      await deleteProposal(id);
-      setProposals(proposals.filter(p => p._id !== id));
-      if (selectedProposal?._id === id) setSelectedProposal(null);
-    } catch (error) {
-      toast.error(t('dashboard.history.deleteFailed'));
+      await updateProposalStatus(id, status);
+      toast.success(t('history.statusUpdated', { status: t(`proposal.status.${status}`) }));
+    } catch {
+      patchLocal(id, { status: previous });
+      toast.error(t('history.statusError'));
     }
   };
 
-  const handleCopyProposal = (proposalText, id) => {
-    navigator.clipboard.writeText(proposalText);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const handleDownloadProposal = (proposal) => {
-    const blob = new Blob([proposal.generatedProposal], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `lunarbid_${proposal.jobTitle.replace(/\s+/g, '_')}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleEditProposal = (proposal) => {
-    if (onEditProposal) {
-      onEditProposal(proposal);
+  const remove = async () => {
+    setDeleting(true);
+    try {
+      await deleteProposal(selected._id);
+      setItems((prev) => prev.filter((p) => p._id !== selected._id));
+      setConfirmDelete(false);
+      back();
+      toast.success(t('history.deleted'));
+    } catch {
+      toast.error(t('history.deleteError'));
+    } finally {
+      setDeleting(false);
     }
   };
 
-  const handleDuplicateProposal = (proposal) => {
-    if (onDuplicateProposal) {
-      onDuplicateProposal(proposal);
-    }
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
-  };
-
-  const getToneBadgeColor = (tone) => {
-    switch(tone) {
-      case 'professional':
-      case 'formal': 
-        return darkMode 
-          ? 'bg-blue-900/30 text-blue-300 border-blue-700' 
-          : 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'friendly': 
-        return darkMode 
-          ? 'bg-green-900/30 text-green-300 border-green-700' 
-          : 'bg-green-100 text-green-700 border-green-200';
-      case 'persuasive': 
-        return darkMode 
-          ? 'bg-purple-900/30 text-purple-300 border-purple-700' 
-          : 'bg-purple-100 text-purple-700 border-purple-200';
-      default: 
-        return darkMode 
-          ? 'bg-gray-800 text-gray-300 border-gray-700' 
-          : 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64">
-        <Loader2 className={`w-12 h-12 animate-spin mb-4 ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
-        <p className={`font-medium ${darkMode ? 'text-slate-200' : 'text-slate-600'}`}>
-          {t('dashboard.history.loading')}
-        </p>
+  const list = (
+    <Card padded={false} className={cn(selected && 'hidden lg:block')}>
+      <div className="flex gap-1 overflow-x-auto border-b border-line p-2" role="tablist" aria-label={t('history.filterLabel')}>
+        {FILTERS.map((f) => (
+          <button key={f} type="button" role="tab" aria-selected={filter === f} onClick={() => setFilter(f)}
+            className={cn('h-8 shrink-0 rounded-md px-3 text-small font-medium transition-colors',
+              filter === f ? 'bg-accent-soft text-accent-text' : 'text-muted hover:bg-subtle hover:text-fg')}>
+            {f === 'all' ? t('history.all') : t(`proposal.status.${f}`)}
+          </button>
+        ))}
       </div>
-    );
-  }
-
-  return (
-    <div className="max-w-4xl mx-auto">
-      {/* Header */}
-      <div className={`flex items-center gap-3 mb-8 pb-6 border-b-2 ${darkMode ? 'border-slate-700' : 'border-indigo-100'}`}>
-        <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl shadow-lg">
-          <FileText className="w-7 h-7 text-white" />
-        </div>
-        <div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            {t('dashboard.history.title')}
-          </h2>
-          <p className={`text-sm mt-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            {proposals.length === 1
-              ? t('dashboard.history.oneGenerated')
-              : t('dashboard.history.countGenerated', { count: nextCursor ? `${proposals.length}+` : proposals.length })}
-          </p>
-        </div>
-      </div>
-
-      {proposals.length === 0 ? (
-        <div className={`text-center py-20 rounded-xl border-2 border-dashed ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-gradient-to-br from-slate-50 to-indigo-50 border-indigo-200'}`}>
-          <div className="relative inline-block mb-6">
-            <FileText className={`w-28 h-28 ${darkMode ? 'text-slate-600' : 'text-slate-300'}`} />
-            <Sparkles className="w-10 h-10 text-indigo-400 absolute -top-2 -right-2 animate-pulse" />
-          </div>
-          <p className={`text-2xl font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{t('dashboard.history.noProposals')}</p>
-          <p className={`text-lg ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('dashboard.history.generateFirst')}</p>
-        </div>
+      {items === null ? (
+        <div className="space-y-4 p-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-11" />)}</div>
+      ) : failed ? (
+        <div className="p-4"><Alert tone="danger" action={<Button size="sm" variant="secondary" onClick={load}>{t('common.retry')}</Button>}>{t('history.loadError')}</Alert></div>
+      ) : items.length === 0 ? (
+        filter === 'all' ? (
+          <EmptyState icon={Files} title={t('history.emptyTitle')} description={t('history.emptyBody')}
+            actions={<Button leftIcon={FilePlus2} onClick={() => onNavigate?.('generate')}>{t('shell.newProposal')}</Button>} />
+        ) : (
+          <EmptyState title={t('history.emptyFilter', { status: t(`proposal.status.${filter}`).toLowerCase() })} />
+        )
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Proposal List */}
-          <div className={`space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar ${
-            darkMode ? 'dark-scrollbar' : ''
-          }`}>
-            {proposals.map((proposal) => (
-              <div
-                key={proposal._id}
-                onClick={() => setSelectedProposal(proposal)}
-                className={`p-5 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                  selectedProposal?._id === proposal._id
-                    ? darkMode
-                      ? 'bg-indigo-900/30 border-indigo-500 shadow-lg'
-                      : 'bg-indigo-50 border-indigo-400 shadow-lg'
-                    : darkMode
-                      ? 'bg-slate-800 border-slate-700 hover:border-slate-600 hover:bg-slate-750'
-                      : 'bg-white border-slate-200 hover:border-indigo-200 hover:shadow-md'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className={`font-bold text-lg line-clamp-2 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                    {proposal.jobTitle}
-                  </h3>
-                  <span className={`ml-2 px-2 py-1 text-xs font-semibold rounded border ${getToneBadgeColor(proposal.tone)}`}>
-                    {proposal.tone}
-                  </span>
-                </div>
-
-                <p className={`text-sm mb-3 line-clamp-2 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                  {proposal.jobDescription}
-                </p>
-
-                <div className="flex items-center justify-between text-xs">
-                  <div className={`flex items-center gap-1 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>{formatDate(proposal.createdAt)}</span>
+        <ul className="divide-y divide-line">
+          {items.map((p) => {
+            const current = selected?._id === p._id;
+            return (
+              <li key={p._id}>
+                <button type="button" onClick={() => select(p)} aria-current={current ? 'true' : undefined}
+                  className={cn('flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors',
+                    current ? 'bg-accent-soft' : 'hover:bg-subtle')}>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-body font-medium text-fg">{p.jobTitle}</p>
+                    <p className={cn('mt-0.5 truncate text-small', current ? 'text-fg-2' : 'text-muted')}>
+                      {[p.clientName, formatDate(p.createdAt, currentLanguage)].filter(Boolean).join(' · ')}
+                    </p>
                   </div>
-                  {proposal.budget && (
-                    <div className={`flex items-center gap-1 font-semibold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
-                      <DollarSign className="w-3.5 h-3.5" />
-                      <span>{proposal.budget}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-            {nextCursor && (
-              <button
-                type="button"
-                onClick={loadMore}
-                disabled={loadingMore}
-                className={`w-full rounded-xl border-2 py-3 text-sm font-semibold transition-colors disabled:opacity-60 ${darkMode ? 'border-slate-700 text-slate-200 hover:bg-slate-800' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}
-              >
-                {loadingMore ? t('dashboard.history.loadingMore') : t('dashboard.history.loadMore')}
-              </button>
-            )}
-          </div>
-
-          {/* Proposal Preview */}
-          {selectedProposal ? (
-            <div className={`p-6 rounded-xl border-2 shadow-lg ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-indigo-100'}`}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className={`font-bold text-xl ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                  {selectedProposal.jobTitle}
-                </h3>
-                <button
-                  onClick={() => setSelectedProposal(null)}
-                  className={`px-3 py-1 rounded-lg text-sm font-semibold transition-all ${
-                    darkMode 
-                      ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' 
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
-                >
-                  {t('dashboard.history.close')}
+                  <StatusBadge status={p.status} />
                 </button>
-              </div>
-
-              <div className="mb-4 flex flex-wrap gap-2">
-                <button
-                  onClick={() => handleCopyProposal(selectedProposal.generatedProposal, selectedProposal._id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
-                    copiedId === selectedProposal._id
-                      ? darkMode
-                        ? 'bg-green-900/30 text-green-300'
-                        : 'bg-green-100 text-green-700'
-                      : darkMode
-                        ? 'bg-indigo-900/30 hover:bg-indigo-800/40 text-indigo-300'
-                        : 'bg-indigo-100 hover:bg-indigo-200 text-indigo-700'
-                  }`}
-                >
-                  {copiedId === selectedProposal._id ? <Eye className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  {copiedId === selectedProposal._id ? t('dashboard.history.copied') : t('dashboard.history.copy')}
-                </button>
-
-                <button
-                  onClick={() => handleEditProposal(selectedProposal)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
-                    darkMode 
-                      ? 'bg-purple-900/30 hover:bg-purple-800/40 text-purple-300' 
-                      : 'bg-purple-100 hover:bg-purple-200 text-purple-700'
-                  }`}
-                >
-                  <Edit className="w-4 h-4" />
-                  {t('dashboard.history.edit')}
-                </button>
-
-                <button
-                  onClick={() => handleDuplicateProposal(selectedProposal)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
-                    darkMode 
-                      ? 'bg-blue-900/30 hover:bg-blue-800/40 text-blue-300' 
-                      : 'bg-blue-100 hover:bg-blue-200 text-blue-700'
-                  }`}
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  {t('dashboard.history.duplicate')}
-                </button>
-
-                <button
-                  onClick={() => handleDownloadProposal(selectedProposal)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
-                    darkMode 
-                      ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' 
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
-                >
-                  <Download className="w-4 h-4" />
-                  {t('dashboard.history.download')}
-                </button>
-
-                <button
-                  onClick={() => handleDelete(selectedProposal._id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
-                    darkMode 
-                      ? 'bg-red-900/30 hover:bg-red-800/40 text-red-300' 
-                      : 'bg-red-100 hover:bg-red-200 text-red-700'
-                  }`}
-                >
-                  <Trash2 className="w-4 h-4" />
-                  {t('dashboard.history.delete')}
-                </button>
-              </div>
-
-              <div className={`p-4 rounded-lg max-h-96 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed custom-scrollbar ${
-                darkMode ? 'bg-slate-900/50 text-slate-300 dark-scrollbar' : 'bg-slate-50 text-slate-700'
-              }`}>
-                {selectedProposal.generatedProposal}
-              </div>
-            </div>
-          ) : (
-            <div className={`flex items-center justify-center p-12 rounded-xl border-2 border-dashed ${
-              darkMode ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-300'
-            }`}>
-              <div className="text-center">
-                <Eye className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-slate-600' : 'text-slate-300'}`} />
-                <p className={`font-semibold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {t('dashboard.history.selectDetails')}
-                </p>
-              </div>
-            </div>
-          )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {nextCursor && (
+        <div className="border-t border-line p-3">
+          <Button variant="secondary" className="w-full" onClick={loadMore} loading={loadingMore}>{t('history.loadMore')}</Button>
         </div>
       )}
+    </Card>
+  );
+
+  return (
+    <div>
+      <PageHeader title={t('history.title')} description={t('history.subtitle')}
+        actions={<Button leftIcon={FilePlus2} onClick={() => onNavigate?.('generate')}>{t('shell.newProposal')}</Button>} />
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+        {list}
+        <div className={cn(!selected && 'hidden lg:block')}>
+          {selected ? (
+            <div className="space-y-3">
+              <Button variant="ghost" size="sm" leftIcon={ArrowLeft} onClick={back} className="lg:hidden">{t('history.back')}</Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <label htmlFor="status-select" className="text-small font-medium text-fg">{t('history.statusLabel')}</label>
+                <div className="w-36">
+                  <Select id="status-select" value={selected.status || 'draft'} onChange={(e) => changeStatus(e.target.value)} className="!h-9">
+                    {STATUSES.map((s) => <option key={s} value={s}>{t(`proposal.status.${s}`)}</option>)}
+                  </Select>
+                </div>
+                <div className="ml-auto flex gap-1">
+                  <Button variant="secondary" size="sm" leftIcon={CopyIcon} onClick={() => onEditProposal?.(selected)}>{t('history.reuse')}</Button>
+                  <IconButton icon={Trash2} label={t('history.delete')} variant="danger-ghost" size="sm" onClick={() => setConfirmDelete(true)} />
+                </div>
+              </div>
+              <ProposalDocument key={selected._id} id={selected._id} title={selected.jobTitle} clientName={selected.clientName}
+                createdAt={selected.createdAt} text={selected.editedProposal || selected.generatedProposal} isPublic={!!selected.isPublic}
+                onSaved={(text) => patchLocal(selected._id, { editedProposal: text })}
+                onSent={() => patchLocal(selected._id, { status: 'sent', isPublic: true })} />
+            </div>
+          ) : items?.length ? (
+            <Card><EmptyState icon={Files} title={t('history.selectTitle')} description={t('history.selectBody')} /></Card>
+          ) : null}
+        </div>
+      </div>
+
+      <Modal open={confirmDelete} onClose={() => setConfirmDelete(false)} size="sm" title={t('history.confirmTitle')}
+        description={t('history.confirmBody', { title: selected?.jobTitle || '' })}
+        footer={<>
+          <Button variant="secondary" onClick={() => setConfirmDelete(false)}>{t('common.cancel')}</Button>
+          <Button variant="danger" loading={deleting} onClick={remove}>{t('history.delete')}</Button>
+        </>}>
+        <p className="text-small text-muted">{t('history.confirmNote')}</p>
+      </Modal>
     </div>
   );
-};
-
-export default ProposalHistory;
+}

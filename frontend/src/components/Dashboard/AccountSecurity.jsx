@@ -1,16 +1,16 @@
 // Security: change password and sign out of other devices. Both return a fresh session
 // for this device; every other device must sign in again.
 import React, { useState } from 'react';
-import { KeyRound, LogOut, Loader2 } from 'lucide-react';
+import { KeyRound, LogOut } from 'lucide-react';
 import { changePassword, logoutAllDevices } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { useToast } from '../UI/Toast';
+import { Alert, Button, Card, CardHeader, Field } from '../ui';
+import PasswordInput from '../Auth/PasswordInput';
 
 export default function AccountSecurity() {
   const { user } = useAuth();
-  const { darkMode } = useTheme();
   const { t } = useLanguage();
   const toast = useToast();
   const [current, setCurrent] = useState('');
@@ -49,43 +49,31 @@ export default function AccountSecurity() {
     }
   };
 
-  const card = `mt-8 rounded-2xl border-2 p-6 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`;
-  const input = `mt-1 w-full rounded-lg border-2 px-3 py-2 ${darkMode ? 'border-slate-600 bg-slate-900 text-white' : 'border-slate-300 bg-white text-slate-900'}`;
-  const labelCls = `block text-sm font-semibold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`;
-  const button = `inline-flex items-center justify-center gap-2 rounded-lg border-2 px-4 py-2 text-sm font-semibold disabled:opacity-60 ${darkMode ? 'border-slate-600 text-slate-100 hover:bg-slate-700' : 'border-slate-300 text-slate-800 hover:bg-slate-50'}`;
 
   return (
-    <section className={card} aria-labelledby="security-title">
-      <h2 id="security-title" className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{t('dashboard.security.title')}</h2>
-
+    <Card id="security" aria-labelledby="security-title" className="scroll-mt-20">
+      <CardHeader titleId="security-title" title={t('dashboard.security.title')} description={t('settings.securitySubtitle')} />
       {user?.hasPassword !== false && (
-        <form onSubmit={submitPassword} className="mt-5 grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="security-current" className={labelCls}>{t('dashboard.security.current')}</label>
-            <input id="security-current" type="password" autoComplete="current-password" required value={current} onChange={(e) => setCurrent(e.target.value)} className={input} />
-          </div>
-          <div>
-            <label htmlFor="security-new" className={labelCls}>{t('dashboard.security.new')}</label>
-            <input id="security-new" type="password" autoComplete="new-password" required minLength={8} value={next} onChange={(e) => setNext(e.target.value)}
-              aria-invalid={!!error} aria-describedby={error ? 'security-error' : undefined} className={input} />
-          </div>
-          {error && <p id="security-error" role="alert" className="text-sm text-red-600 sm:col-span-2">{error}</p>}
+        <form onSubmit={submitPassword} className="grid gap-4 sm:grid-cols-2">
+          <Field label={t('dashboard.security.current')} required>
+            <PasswordInput autoComplete="current-password" required value={current} onChange={(e) => setCurrent(e.target.value)} />
+          </Field>
+          <Field label={t('dashboard.security.new')} required hint={t('auth.register.passwordHint')}>
+            <PasswordInput autoComplete="new-password" required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} />
+          </Field>
+          {error && <div className="sm:col-span-2"><Alert tone="danger">{error}</Alert></div>}
           <div className="sm:col-span-2">
-            <button type="submit" disabled={busy === 'password'} className={button}>
-              {busy === 'password' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <KeyRound className="h-4 w-4" aria-hidden="true" />}
-              {t('dashboard.security.change')}
-            </button>
+            <Button type="submit" variant="secondary" leftIcon={KeyRound} loading={busy === 'password'}>{t('dashboard.security.change')}</Button>
           </div>
         </form>
       )}
-
-      <div className={`mt-6 flex flex-col gap-2 border-t pt-5 sm:flex-row sm:items-center sm:justify-between ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
-        <p className={`text-sm ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{t('dashboard.security.othersHint')}</p>
-        <button type="button" onClick={signOutOthers} disabled={busy === 'logout'} className={button}>
-          {busy === 'logout' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <LogOut className="h-4 w-4" aria-hidden="true" />}
-          {t('dashboard.security.signOutOthers')}
-        </button>
+      <div className="mt-6 flex flex-col gap-3 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-body font-medium text-fg">{t('dashboard.security.signOutOthers')}</p>
+          <p className="text-small text-muted">{t('dashboard.security.othersHint')}</p>
+        </div>
+        <Button variant="secondary" leftIcon={LogOut} onClick={signOutOthers} loading={busy === 'logout'}>{t('settings.signOutOthersShort')}</Button>
       </div>
-    </section>
+    </Card>
   );
 }

@@ -24,10 +24,15 @@ function checkEnv() {
   if (isProd && /localhost|127\.0\.0\.1/.test(env.FRONTEND_URL || '')) errors.push('FRONTEND_URL points at localhost');
   if (isProd && env.FRONTEND_URL && !env.FRONTEND_URL.startsWith('https://')) errors.push('FRONTEND_URL must use https in production');
 
-  require('STRIPE_SECRET_KEY', 'billing');
-  require('STRIPE_WEBHOOK_SECRET', 'verifying Stripe webhooks');
-  require('STRIPE_STARTER_PRICE_ID', 'Starter plan checkout');
-  require('STRIPE_PRO_PRICE_ID', 'Pro plan checkout');
+  // Payments are optional: without them the app runs and upgrade attempts say payments
+  // aren't available yet. A partial configuration is a mistake, so that stops production.
+  const stripeVars = ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_STARTER_PRICE_ID', 'STRIPE_PRO_PRICE_ID'];
+  const stripeSet = stripeVars.filter((k) => !looksPlaceholder(env[k]));
+  if (stripeSet.length === 0) {
+    warnings.push('payments are not configured: upgrades will show "payments aren\'t available yet"');
+  } else if (stripeSet.length < stripeVars.length) {
+    stripeVars.filter((k) => !stripeSet.includes(k)).forEach((k) => errors.push(`${k} is missing (the other Stripe settings are set)`));
+  }
   if (isProd && (env.STRIPE_SECRET_KEY || '').startsWith('sk_test_')) {
     warnings.push('STRIPE_SECRET_KEY is a test key in production');
   }

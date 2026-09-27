@@ -183,13 +183,13 @@ test('history is paginated with a cursor', async () => {
 // ================= BIL-10: atomic quotas =================
 test('simultaneous requests cannot exceed the plan limit', async () => {
   const { reserve } = require('../services/usage');
-  const u = makeUser(); // free plan: 5 proposals per day
+  const u = makeUser(); // free plan: 10 proposals per month
   u.usage.lastResetDate = new Date();
   u.usage.monthlyResetDate = new Date();
-  const results = await Promise.all(Array.from({ length: 8 }, () => reserve(u, 'proposal')));
-  assert.equal(results.filter((r) => r.allowed).length, 5);
-  assert.equal(results.filter((r) => !r.allowed)[0].reason, 'daily_limit');
-  assert.equal(u.usage.proposalsToday, 5);
+  const results = await Promise.all(Array.from({ length: 12 }, () => reserve(u, 'proposal')));
+  assert.equal(results.filter((r) => r.allowed).length, 10);
+  assert.equal(results.filter((r) => !r.allowed)[0].reason, 'monthly_limit');
+  assert.equal(u.usage.proposalsThisMonth, 10);
 });
 
 test('a released reservation gives the quota back', async () => {
@@ -201,4 +201,76 @@ test('a released reservation gives the quota back', async () => {
   await r.release();
   await r.release(); // releasing twice has no extra effect
   assert.equal(u.usage.analysesToday, 0);
+});
+
+// ================= Analytics stays in step with proposal status =================
+test('marking a proposal won updates its analytics record', async () => {
+  const ProposalAnalytics = require('../models/ProposalAnalytics');
+  const u = makeUser();
+  const proposalId = new mongoose.Types.ObjectId();
+  const record = new ProposalAnalytics({ user: u._id, proposal: proposalId, jobTitle: 'x', status: 'draft', dateCreated: new Date(Date.now() - 48 * 3600e3) });
+  record.save = async function () { if (this.dateSubmitted && this.dateResponded && !this.responseTime) this.responseTime = Math.round((this.dateResponded - this.dateSubmitted) / 3600e3); return this; };
+  ProposalAnalytics.findOne = async (f) => (String(f.proposal) === String(proposalId) ? record : null);
+  Proposal.findOneAndUpdate = async (q, update) => ({ _id: proposalId, ...update });
+  const res = await call('PATCH', `/api/proposals/${proposalId}/status`, { status: 'accepted' }, bearer(signSession(u)));
+  assert.equal(res.status, 200);
+  assert.equal(record.status, 'accepted');
+  assert.ok(record.dateResponded instanceof Date);
+  assert.ok(record.responseTime >= 47, 'response time measured from creation');
+});
+
+// ================= Production config: payments optional =================
+test('production config: payments may be absent, but not half-configured', () => {
+  const { checkEnv } = require('../config/env');
+  const saved = { ...process.env };
+  Object.assign(process.env, {
+    MONGODB_URI: 'mongodb+srv://u:p@cluster.test/lunarbid', JWT_SECRET: 'q7Rk2mZ9vT4wN8pL3sD6fH1jG5bC0aYe',
+    FRONTEND_URL: 'https://lunarbid.ai', GROQ_API_KEY: 'gsk_real', SMTP_HOST: 'smtp.resend.com', SMTP_PASSWORD: 're_key',
+  });
+  ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_STARTER_PRICE_ID', 'STRIPE_PRO_PRICE_ID'].forEach((k) => delete process.env[k]);
+  let r = checkEnv();
+  assert.equal(r.errors.length, 0, r.errors.join('; '));
+  assert.ok(r.warnings.some((w) => /payments are not configured/.test(w)));
+  process.env.STRIPE_SECRET_KEY = 'sk_live_abc';
+  r = checkEnv();
+  assert.ok(r.errors.some((e) => /STRIPE_WEBHOOK_SECRET is missing/.test(e)));
+  process.env = saved;
+});
+
+// ================= Pricing: plan structure =================
+test('Free never out-produces paid Starter, and Pro has a disclosed fair-use cap', () => {
+  const { getLimits } = require('../config/plans');
+  const free = getLimits('free'); const starter = getLimits('starter'); const pro = getLimits('pro');
+  const monthlyMax = (l) => l.monthlyProposals ?? (l.dailyProposals != null ? l.dailyProposals * 31 : Infinity);
+  assert.ok(monthlyMax(free) < monthlyMax(starter), 'Free must allow fewer proposals per month than Starter');
+  assert.ok(monthlyMax(starter) < monthlyMax(pro));
+  assert.equal(pro.dailyProposals, 100);
+  assert.equal(pro.fairUse, true);
+});
+
+test('limit messages only suggest upgrading when a higher plan exists', async () => {
+  const pro = makeUser({ subscription: { plan: 'pro', status: 'active', stripeSubscriptionId: 'sub_fair' } });
+  pro.usage.proposalsToday = 100; pro.usage.lastResetDate = new Date(); pro.usage.monthlyResetDate = new Date();
+  const res = await call('POST', '/api/proposals/generate', { jobTitle: 'Logo', jobDescription: 'Design a logo for our bakery brand please' }, bearer(signSession(pro)));
+  const body = await res.json();
+  assert.equal(res.status, 403);
+  assert.equal(body.canUpgrade, false);
+  assert.match(body.message, /fair-use/);
+  const free = makeUser();
+  free.usage.proposalsThisMonth = 10; free.usage.lastResetDate = new Date(); free.usage.monthlyResetDate = new Date();
+  const res2 = await call('POST', '/api/proposals/generate', { jobTitle: 'Logo', jobDescription: 'Design a logo for our bakery brand please' }, bearer(signSession(free)));
+  const body2 = await res2.json();
+  assert.equal(body2.canUpgrade, true);
+  assert.match(body2.message, /Upgrade to keep writing/);
+});
+
+// ================= Landing-page fallback pricing stays in sync =================
+test('frontend fallback plans match the backend', async () => {
+  const path = require('path');
+  const { pathToFileURL } = require('url');
+  const file = path.join(__dirname, '../../frontend/src/config/publicPlans.js');
+  const { PUBLIC_PLANS } = await import(pathToFileURL(file).href);
+  const { getPublicPlans } = require('../config/plans');
+  assert.deepEqual(PUBLIC_PLANS, JSON.parse(JSON.stringify(getPublicPlans())),
+    'Regenerate frontend/src/config/publicPlans.js after changing backend/config/plans.js');
 });

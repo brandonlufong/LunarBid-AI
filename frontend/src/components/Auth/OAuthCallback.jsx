@@ -26,10 +26,10 @@ const OAuthCallback = () => {
   }, [params]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0b1020]">
+    <div className="min-h-screen flex items-center justify-center bg-page">
       <div className="text-center">
-        <Loader2 className="w-12 h-12 text-brand-400 animate-spin mx-auto mb-4" />
-        <p className="text-slate-300 font-medium">{t('auth.oauth.signingIn')}</p>
+        <Loader2 className="w-12 h-12 text-accent-text animate-spin mx-auto mb-4" />
+        <p className="text-fg-2 font-medium">{t('auth.oauth.signingIn')}</p>
       </div>
     </div>
   );

@@ -20,9 +20,11 @@ const PLANS = {
     stripePriceEnv: null,
     purchasable: false,
     limits: {
-      dailyAnalyses: 10,              // AI job-post analyses per day
-      dailyProposals: 5,
-      monthlyProposals: null,
+      // Free is for trying LunarBid on real bids. A monthly allowance (not 5/day ≈ 150/month)
+      // keeps Free below paid Starter (50/month). See LAUNCH_REPORT.md, pricing assessment.
+      dailyAnalyses: 5,               // AI job-post analyses per day
+      dailyProposals: null,
+      monthlyProposals: 10,
       clientProfiles: 0,
       teamMembers: 1,
       storage: 100 * 1024 * 1024,     // 100 MB
@@ -82,8 +84,11 @@ const PLANS = {
     purchasable: true,
     limits: {
       dailyAnalyses: 150,
-      dailyProposals: null,
-      monthlyProposals: null,          // unlimited
+      // "Unlimited" with a disclosed fair-use ceiling: far above manual bidding, but it
+      // bounds AI cost per account. Shown to users as "Unlimited (fair use: 100/day)".
+      dailyProposals: 100,
+      monthlyProposals: null,
+      fairUse: true,
       clientProfiles: 50,
       teamMembers: 1,
       storage: 2 * 1024 * 1024 * 1024, // 2 GB

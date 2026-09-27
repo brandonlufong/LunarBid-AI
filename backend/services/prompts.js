@@ -71,6 +71,7 @@ Rules:
 4. Outline the approach${isPriority ? ' in detail, with clear steps and milestones' : ''}, and mention availability and next steps.
 5. No buzzwords, clichés, emojis, placeholders in brackets, or statements about being an AI.
 6. End with a clear, friendly call to action.
+7. Write the proposal in the same language as the job post (for example, French for a French post).
 
 Write in the first person as ${name}. Output only the proposal text.`;
 }

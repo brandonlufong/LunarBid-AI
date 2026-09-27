@@ -114,6 +114,7 @@ test('an empty profile never produces invented credentials in the prompt', () =>
     assert.ok(!prompt.includes(phrase), phrase);
   }
   assert.match(prompt, /Do not invent/);
+  assert.match(prompt, /same language as the job post/);
   assert.match(prompt, /has not added profile details/);
 });
 

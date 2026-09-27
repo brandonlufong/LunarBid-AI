@@ -1,205 +1,120 @@
-import React, { useState } from 'react';
-import { Mail, MessageCircle, Phone, ExternalLink, Clock, CheckCircle } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
-import { useToast } from '../UI/Toast';
-import { useLanguage } from '../../locales/LanguageContext.jsx';
+// Help & support: open a request (ticket) and see previous ones. Response times come from
+// the API for the user's plan and are presented as targets.
+import React, { useCallback, useEffect, useState } from 'react';
+import { CheckCircle2, Clock, LifeBuoy, Mail } from 'lucide-react';
 import api from '../../services/api';
+import { useLanguage } from '../../locales/LanguageContext.jsx';
+import { useToast } from '../UI/Toast';
+import { Alert, Badge, Button, Card, CardHeader, EmptyState, Field, Input, PageHeader, Select, Skeleton, Textarea } from '../ui';
+import { formatDate } from './proposalMeta.jsx';
 
-const Support = () => {
-  const { darkMode } = useTheme();
+const CATEGORIES = ['general', 'technical', 'bug_report', 'billing', 'feature_request'];
+const STATUS_TONE = { open: 'accent', in_progress: 'accent', waiting_reply: 'warning', resolved: 'success', closed: 'neutral' };
+
+export default function Support() {
+  const { t, currentLanguage } = useLanguage();
   const toast = useToast();
-  const { t } = useLanguage();
-  const [formData, setFormData] = useState({
-    subject: '',
-    message: '',
-    category: 'general'
-  });
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ category: 'general', subject: '', message: '' });
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [info, setInfo] = useState(null);
+  const [tickets, setTickets] = useState(null);
 
-  const handleSubmit = async (e) => {
+  const loadTickets = useCallback(() => {
+    api.get('/support/tickets').then((r) => setTickets(Array.isArray(r.data) ? r.data : r.data.tickets || [])).catch(() => setTickets([]));
+  }, []);
+  useEffect(() => {
+    api.get('/support/info').then((r) => setInfo(r.data)).catch(() => setInfo({}));
+    loadTickets();
+  }, [loadTickets]);
+
+  const submit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    
+    setSending(true);
     try {
-      const token = localStorage.getItem('token');
-      await api.post('/support/tickets', formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      setSubmitted(true);
-      setFormData({ subject: '', message: '', category: 'general' });
-      setTimeout(() => setSubmitted(false), 5000);
-    } catch (error) {
-      console.error('Error submitting support ticket:', error);
-      toast.error(t('dashboard.support.submitFailed'));
+      await api.post('/support/tickets', form);
+      setSent(true);
+      setForm({ category: 'general', subject: '', message: '' });
+      loadTickets();
+    } catch (err) {
+      toast.error(err.response?.data?.message || t('support.error'));
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   };
 
-  const categories = [
-    { value: 'general', label: t('dashboard.support.catGeneral'), icon: MessageCircle },
-    { value: 'technical', label: t('dashboard.support.catTechnical'), icon: Mail },
-    { value: 'billing', label: t('dashboard.support.catBilling'), icon: MessageCircle },
-    { value: 'feature', label: t('dashboard.support.catFeature'), icon: MessageCircle }
-  ];
-
-  if (submitted) {
-    return (
-      <div className="max-w-2xl mx-auto text-center py-16">
-        <div className={`p-8 rounded-2xl ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} shadow-lg`}>
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h3 className={`text-2xl font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-            {t('dashboard.support.submittedTitle')}
-          </h3>
-          <p className={`mb-4 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-            {t('dashboard.support.submittedMsg')}
-          </p>
-          <div className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            <strong>{t('dashboard.support.ticketId')}</strong> #TK{Date.now().toString().slice(-6)}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const hours = parseInt(info?.responseTime, 10);
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className={`mb-8 p-8 rounded-2xl ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} shadow-lg`}>
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-lg">
-            <Mail className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              {t('dashboard.support.title')}
-            </h2>
-            <p className={`text-sm mt-1 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>
-              {t('dashboard.support.subtitle')}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Contact Form */}
-          <div>
-            <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-              {t('dashboard.support.sendMessage')}
-            </h3>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Category */}
-              <div>
-                <label htmlFor="support-field-1" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                  {t('dashboard.support.category')}
-                </label>
-                <select id="support-field-1"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className={`w-full px-4 py-3 rounded-lg border-2 ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-white border-slate-200 text-slate-800'} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
-                >
-                  {categories.map(cat => (
-                    <option key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Subject */}
-              <div>
-                <label htmlFor="support-field-2" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                  {t('dashboard.support.subject')} <span className="text-red-500">*</span>
-                </label>
-                <input id="support-field-2"
-                  type="text"
-                  value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                  placeholder={t('dashboard.support.subjectPlaceholder')}
-                  className={`w-full px-4 py-3 rounded-lg border-2 ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-white border-slate-200 text-slate-800'} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
-                  required
-                />
-              </div>
-
-              {/* Message */}
-              <div>
-                <label htmlFor="support-field-3" className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                  {t('dashboard.support.message')} <span className="text-red-500">*</span>
-                </label>
-                <textarea id="support-field-3"
-                  value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  placeholder={t('dashboard.support.messagePlaceholder')}
-                  rows={6}
-                  className={`w-full px-4 py-3 rounded-lg border-2 resize-none ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-white border-slate-200 text-slate-800'} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
-                  required
-                />
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-              >
-                {loading ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white/30 animate-spin"></div>
-                    {t('dashboard.support.sending')}
-                  </>
-                ) : (
-                  <>
-                    <Mail className="w-5 h-5" />
-                    {t('dashboard.support.sendBtn')}
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-
-          {/* Quick Contact Info */}
-          <div>
-            <h3 className={`text-xl font-bold mb-4 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-              {t('dashboard.support.otherWays')}
-            </h3>
-            
+    <div>
+      <PageHeader title={t('support.title')} description={t('support.subtitle')} />
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        <Card aria-labelledby="new-request">
+          <CardHeader titleId="new-request" icon={LifeBuoy} title={t('support.newTitle')} description={t('support.newSubtitle')} />
+          {sent ? (
             <div className="space-y-4">
-              <div className={`p-4 rounded-lg ${darkMode ? 'bg-slate-700' : 'bg-slate-50'} border-2 ${darkMode ? 'border-slate-600' : 'border-slate-200'}`}>
-                <div className="flex items-center gap-3 mb-2">
-                  <Mail className={`w-5 h-5 ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                  <div>
-                    <h4 className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{t('dashboard.support.emailLabel')}</h4>
-                    <p className={`text-sm ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>support@lunarbid.com</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className={`p-4 rounded-lg ${darkMode ? 'bg-slate-700' : 'bg-slate-50'} border-2 ${darkMode ? 'border-slate-600' : 'border-slate-200'}`}>
-                <div className="flex items-center gap-3 mb-2">
-                  <Clock className={`w-5 h-5 ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                  <div>
-                    <h4 className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{t('dashboard.support.responseTime')}</h4>
-                    <p className={`text-sm ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>{t('dashboard.support.within24')}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className={`p-4 rounded-lg ${darkMode ? 'bg-slate-700' : 'bg-slate-50'} border-2 ${darkMode ? 'border-slate-600' : 'border-slate-200'}`}>
-                <div className="flex items-center gap-3 mb-2">
-                  <ExternalLink className={`w-5 h-5 ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                  <div>
-                    <h4 className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{t('dashboard.support.helpCenter')}</h4>
-                    <p className={`text-sm ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>docs.lunarbid.com</p>
-                  </div>
-                </div>
-              </div>
+              <Alert tone="success" title={t('support.sentTitle')}>{t('support.sentBody')}</Alert>
+              <Button variant="secondary" onClick={() => setSent(false)}>{t('support.another')}</Button>
             </div>
-          </div>
+          ) : (
+            <form onSubmit={submit} className="space-y-4">
+              <Field label={t('support.category')} required>
+                <Select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                  {CATEGORIES.map((c) => <option key={c} value={c}>{t(`support.categories.${c}`)}</option>)}
+                </Select>
+              </Field>
+              <Field label={t('support.subject')} required>
+                <Input required maxLength={150} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
+              </Field>
+              <Field label={t('support.message')} required hint={t('support.messageHint')} counter={`${form.message.length} / 5,000`}>
+                <Textarea required rows={6} maxLength={5000} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
+              </Field>
+              <Button type="submit" loading={sending}>{t('support.submit')}</Button>
+            </form>
+          )}
+        </Card>
+
+        <div className="space-y-6">
+          <Card aria-labelledby="support-contact">
+            <CardHeader titleId="support-contact" title={t('support.contactTitle')} />
+            <ul className="space-y-3 text-small">
+              <li className="flex gap-2.5">
+                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                <span className="text-fg-2">
+                  {info === null ? <Skeleton className="h-4 w-40" /> : Number.isFinite(hours)
+                    ? t('support.responseTarget', { hours, plan: t(`shell.plans.${info.plan}`) })
+                    : t('support.responseGeneric')}
+                </span>
+              </li>
+              <li className="flex gap-2.5">
+                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                <span className="text-fg-2">{t('support.emailUs')} <a className="font-medium text-accent-text hover:underline" href="mailto:support@lunarbid.ai">support@lunarbid.ai</a></span>
+              </li>
+            </ul>
+          </Card>
+
+          <Card aria-labelledby="your-requests">
+            <CardHeader titleId="your-requests" title={t('support.yourRequests')} />
+            {tickets === null ? (
+              <div className="space-y-3"><Skeleton className="h-10" /><Skeleton className="h-10" /></div>
+            ) : tickets.length === 0 ? (
+              <EmptyState icon={CheckCircle2} className="!py-6" title={t('support.noRequests')} />
+            ) : (
+              <ul className="divide-y divide-line">
+                {tickets.slice(0, 8).map((tk) => (
+                  <li key={tk._id} className="flex items-start gap-3 py-3 first:pt-0">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-body font-medium text-fg">{tk.subject}</p>
+                      <p className="text-caption text-muted">{t(`support.categories.${tk.category}`)} · {formatDate(tk.createdAt, currentLanguage)}</p>
+                    </div>
+                    <Badge tone={STATUS_TONE[tk.status] || 'neutral'}>{t(`support.status.${tk.status}`)}</Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
         </div>
       </div>
     </div>
   );
-};
-
-export default Support;
+}

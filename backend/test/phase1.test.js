@@ -105,7 +105,7 @@ test('BIL-3: canceled / incomplete_expired / legacy cancelled never count as act
 test('feature access and limits follow the effective plan', () => {
   const unpaid = makeUser({ subscription: { plan: 'pro', status: 'incomplete', stripeSubscriptionId: 'sub_x' } });
   assert.equal(unpaid.hasFeatureAccess('analytics'), false);
-  assert.equal(unpaid.getPlanLimits().dailyProposals, 5);
+  assert.equal(unpaid.getPlanLimits().monthlyProposals, 10); // treated as Free
   const paid = makeUser({ subscription: { plan: 'pro', status: 'active', stripeSubscriptionId: 'sub_y' } });
   assert.equal(paid.hasFeatureAccess('analytics'), true);
 });

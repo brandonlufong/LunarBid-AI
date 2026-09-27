@@ -1,552 +1,228 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Check, Sparkles, Moon, Zap, Target, Clock, Users, TrendingUp, Award, Shield, ArrowRight, Crown, Building2 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+// Public landing page. Everything described here exists in the product today; pricing comes
+// from the same plan configuration the app enforces.
+import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  ArrowRight, BarChart3, Check, ClipboardPaste, FileDown, Files, Languages, Minus, PenLine, ScanSearch, Send, ShieldCheck,
+  SlidersHorizontal, Sparkles, UserRoundCheck, Users,
+} from 'lucide-react';
+import { getPlans } from '../services/api';
 import { useLanguage } from '../locales/LanguageContext.jsx';
-import { useTheme } from '../context/ThemeContext.jsx';
-import LanguageSelector from './UI/LanguageSelector';
-import DarkModeToggle from './DarkModeToggle';
+import { Logo } from './app/Logo';
+import { AuthControls } from './Auth/AuthShell';
+import { Badge, Button, cn } from './ui';
+import ProductPreview from './site/ProductPreview';
+import { useParallax, useReveal, useScrolled } from './site/useLandingMotion';
+import { PLAN_ORDER, planLines } from './billing/planLines';
+import { PUBLIC_PLANS } from '../config/publicPlans';
 
-const LandingPage = () => {
-  const navigate = useNavigate();
+const FEATURES = [
+  { key: 'analyze', icon: ScanSearch },
+  { key: 'tailored', icon: UserRoundCheck },
+  { key: 'style', icon: SlidersHorizontal },
+  { key: 'edit', icon: FileDown },
+  { key: 'send', icon: Send },
+  { key: 'track', icon: Files },
+  { key: 'clients', icon: Users },
+  { key: 'languages', icon: Languages },
+];
+
+function Section({ id, eyebrow, title, subtitle, children, className }) {
+  return (
+    <section id={id} aria-labelledby={`${id}-title`} className={cn('scroll-mt-20 px-5 py-20 sm:px-8 sm:py-24', className)}>
+      <div className="mx-auto max-w-6xl">
+        <div className="mx-auto mb-12 max-w-2xl text-center" data-reveal>
+          {eyebrow && <p className="mb-2 text-small font-medium text-accent-text">{eyebrow}</p>}
+          <h2 id={`${id}-title`} className="text-[1.875rem] font-semibold leading-tight tracking-tight text-fg sm:text-[2.25rem]">{title}</h2>
+          {subtitle && <p className="mt-3 text-body-lg text-muted">{subtitle}</p>}
+        </div>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+export default function LandingPage() {
   const { t } = useLanguage();
-  const { darkMode } = useTheme();
+  const [plans, setPlans] = useState(PUBLIC_PLANS);
+  const pageRef = useRef(null);
+  const visualRef = useRef(null);
+  const scrolled = useScrolled();
+  useReveal(pageRef);
+  useParallax(visualRef);
+  // Live plans from the API, falling back to the bundled copy so pricing always shows.
+  useEffect(() => {
+    getPlans()
+      .then((r) => setPlans(r.data.plans?.length ? r.data.plans : PUBLIC_PLANS))
+      .catch(() => setPlans(PUBLIC_PLANS));
+  }, []);
 
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 40 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
-  };
-
-  const staggerContainer = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
+  const nav = [['how', t('site.nav.how')], ['features', t('site.nav.features')], ['pricing', t('site.nav.pricing')], ['faq', t('site.nav.faq')]];
 
   return (
-    <div className={`min-h-screen overflow-hidden transition-colors duration-500 ${
-      darkMode
-        ? 'bg-[#0b1020] text-slate-100'
-        : 'bg-gradient-to-b from-white via-indigo-50/50 to-white text-slate-900'
-    }`}>
+    <div ref={pageRef} className="min-h-screen bg-surface">
+      <a href="#top" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:shadow-pop">{t('shell.skipToContent')}</a>
+      <header className={cn('sticky top-0 z-40 border-b bg-surface/90 backdrop-blur transition-[box-shadow,border-color] duration-300',
+        scrolled ? 'border-line shadow-card' : 'border-transparent')}>
+        <div className={cn('mx-auto flex max-w-6xl items-center gap-6 px-5 transition-[height] duration-300 sm:px-8', scrolled ? 'h-14' : 'h-16')}>
+          <Link to="/" aria-label="LunarBid"><Logo /></Link>
+          <nav aria-label={t('site.nav.label')} className="hidden items-center gap-6 lg:flex">
+            {nav.map(([id, label]) => <a key={id} href={`#${id}`} className="text-body text-fg-2 hover:text-fg">{label}</a>)}
+          </nav>
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <div className="hidden sm:block"><AuthControls /></div>
+            <Link to="/login" className="px-2 text-body font-medium text-fg-2 hover:text-fg">{t('site.signIn')}</Link>
+            <Button as={Link} to="/register" size="sm">{t('site.start')}</Button>
+          </div>
+        </div>
+      </header>
 
-      {/* NAVIGATION */}
-      <nav className={`fixed top-0 w-full backdrop-blur-xl border-b z-50 transition-colors duration-500 ${
-        darkMode
-          ? 'bg-[#0b1020]/70 border-white/10'
-          : 'bg-white/70 border-slate-200'
-      }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-brand-600 to-violet-600 flex items-center justify-center shadow-lg shadow-brand-600/30">
-                <Moon className="w-6 h-6 text-white" />
-              </div>
-              <Sparkles className="w-4 h-4 text-accent-400 absolute -top-1 -right-1 animate-pulse" />
-            </div>
+      <main id="top">
+        {/* Hero */}
+        <section className="relative overflow-hidden border-b border-line bg-page px-5 pb-16 pt-14 sm:px-8 sm:pb-24 sm:pt-20">
+          <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1fr_1.15fr]">
             <div>
-              <h1 className={`text-xl font-bold tracking-tight ${darkMode ? 'text-white' : 'text-slate-900'}`}>LunarBid</h1>
-              <p className={`hidden sm:block text-xs font-medium ${darkMode ? 'text-brand-300' : 'text-brand-600'}`}>{t('landing.footer.tagline')}</p>
+              <div className="hero-in" style={{ '--i': 0 }}><Badge tone="accent">{t('site.hero.eyebrow')}</Badge></div>
+              <h1 style={{ '--i': 1 }} className="hero-in mt-5 font-document text-[2.625rem] font-medium leading-[1.08] tracking-tight text-fg sm:text-[3.5rem]">{t('site.hero.title')}</h1>
+              <p style={{ '--i': 2 }} className="hero-in mt-5 max-w-xl text-body-lg text-fg-2">{t('site.hero.body')}</p>
+              <div style={{ '--i': 3 }} className="hero-in mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Button as={Link} to="/register" size="lg" rightIcon={ArrowRight}>{t('site.hero.cta')}</Button>
+                <Button as="a" href="#how" size="lg" variant="secondary">{t('site.hero.secondary')}</Button>
+              </div>
+              <p style={{ '--i': 4 }} className="hero-in mt-4 text-small text-muted">{t('site.hero.note')}</p>
+            </div>
+            <div className="hero-visual-in relative">
+              <div className="ambient-glow pointer-events-none absolute -inset-10 -z-0 rounded-full opacity-70 blur-2xl" aria-hidden="true" />
+              <div ref={visualRef} className="relative will-change-transform"><ProductPreview /></div>
             </div>
           </div>
-          <div className="flex gap-2 sm:gap-3 items-center">
-            <LanguageSelector />
-            <DarkModeToggle />
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => navigate('/login')}
-              className={`hidden sm:block px-5 py-2.5 font-semibold rounded-xl transition-colors ${
-                darkMode ? 'text-slate-200 hover:text-white' : 'text-slate-700 hover:text-brand-700'
-              }`}
-            >
-              {t('landing.hero.login')}
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.03, y: -1 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => navigate('/register')}
-              className="px-4 sm:px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-semibold text-sm sm:text-base leading-tight shadow-lg shadow-brand-600/25 transition-all"
-            >
-              {t('landing.hero.cta')}
-            </motion.button>
-          </div>
-        </div>
-      </nav>
+        </section>
 
-      {/* HERO SECTION */}
-      <section className="relative px-6 pt-32 pb-24 overflow-hidden">
-        {/* Animated background orbs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <motion.div
-            className="absolute w-96 h-96 bg-brand-500/25 rounded-full blur-3xl top-20 left-1/4"
-            animate={{ 
-              x: [0, 100, -100, 0],
-              y: [0, -50, 50, 0],
-              scale: [1, 1.2, 0.8, 1]
-            }}
-            transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          <motion.div
-            className="absolute w-80 h-80 bg-violet-600/20 rounded-full blur-3xl bottom-20 right-1/4"
-            animate={{ 
-              x: [0, -80, 80, 0],
-              y: [0, 60, -60, 0],
-              scale: [1, 0.8, 1.2, 1]
-            }}
-            transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          <motion.div
-            className="absolute w-64 h-64 bg-accent-400/15 rounded-full blur-3xl top-1/2 right-1/3"
-            animate={{ 
-              x: [0, 50, -50, 0],
-              y: [0, -30, 30, 0]
-            }}
-            transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
-          />
-        </div>
-
-        <div className="max-w-6xl mx-auto text-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="inline-block mb-6"
-          >
-            <span className={`inline-flex items-center gap-2 px-4 py-1.5 border rounded-full text-sm font-semibold backdrop-blur-sm ${
-              darkMode
-                ? 'bg-brand-500/10 border-brand-400/30 text-brand-100'
-                : 'bg-brand-50 border-brand-200 text-brand-700'
-            }`}>
-              <span className="w-1.5 h-1.5 rounded-full bg-accent-400 animate-pulse" />
-              {t('landing.hero.badge')}
-            </span>
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-5xl md:text-7xl font-black mb-6 leading-tight"
-          >
-            {t('landing.hero.title1')}
-            <br />
-            <span className="bg-gradient-to-r from-brand-500 via-violet-500 to-accent-400 bg-clip-text text-transparent">
-              {t('landing.hero.title2')}
-            </span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className={`text-xl md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed font-medium ${
-              darkMode ? 'text-indigo-100' : 'text-slate-700'
-            }`}
-          >
-            {t('landing.hero.subtitleA')}<strong className={`font-black ${
-              darkMode ? 'text-white' : 'text-slate-900'
-            }`}>{t('landing.hero.subtitleStrong')}</strong>{t('landing.hero.subtitleB')}
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            className="flex justify-center gap-4 flex-wrap"
-          >
-            <motion.button
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/register')}
-              className="px-8 py-4 bg-gradient-to-r from-brand-600 to-violet-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-brand-600/30 hover:shadow-brand-600/50 transition-all duration-300 flex items-center gap-2"
-            >
-              {t('landing.hero.startTrial')}
-              <ArrowRight className="w-5 h-5" />
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              className={`px-8 py-4 backdrop-blur-sm border-2 rounded-2xl font-bold text-lg transition-all duration-300 ${
-                darkMode
-                  ? 'bg-white/5 border-white/15 text-white hover:bg-white/10'
-                  : 'bg-white border-slate-200 text-slate-900 hover:border-brand-300 hover:text-brand-700'
-              }`}
-            >
-              {t('landing.hero.watchDemo')}
-            </motion.button>
-          </motion.div>
-
-          {/* Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.8 }}
-            className="mt-16 grid grid-cols-3 gap-8 max-w-3xl mx-auto"
-          >
-            {[
-              { value: '5', label: t('landing.hero.statUsers') },
-              { value: '4', label: t('landing.hero.statProposals') },
-              { value: '2', label: t('landing.hero.statRating') }
-            ].map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className={`text-3xl md:text-4xl font-black mb-2 ${
-                  darkMode ? 'text-white' : 'text-slate-900'
-                }`}>{stat.value}</div>
-                <div className={`text-sm font-medium ${
-                  darkMode ? 'text-indigo-200' : 'text-slate-600'
-                }`}>{stat.label}</div>
-              </div>
+        {/* How it works */}
+        <Section id="how" eyebrow={t('site.how.eyebrow')} title={t('site.how.title')} subtitle={t('site.how.subtitle')}>
+          <div className="relative" data-reveal>
+            <div className="flow-line absolute left-[12.5%] right-[12.5%] top-11 hidden h-px bg-gradient-to-r from-accent/10 via-accent/60 to-accent/10 lg:block" aria-hidden="true" />
+          <ol className="relative grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[['paste', ClipboardPaste], ['draft', Sparkles], ['refine', PenLine], ['track', BarChart3]].map(([key, Icon], i) => (
+              <li key={key} data-reveal style={{ '--i': i }} className="lift rounded-lg border border-line bg-surface p-6">
+                <span className="flex h-10 w-10 items-center justify-center rounded-md bg-accent-soft text-accent-text"><Icon className="h-5 w-5" aria-hidden="true" /></span>
+                <p className="mt-4 text-caption font-medium uppercase tracking-wider text-muted">{t('site.how.step', { n: i + 1 })}</p>
+                <h3 className="mt-1 text-h2 font-semibold text-fg">{t(`site.how.titles.${key}`)}</h3>
+                <p className="mt-2 text-body text-muted">{t(`site.how.${key}`)}</p>
+              </li>
             ))}
-          </motion.div>
-        </div>
-      </section>
+          </ol>
+          </div>
+        </Section>
 
-      {/* PROBLEM SECTION */}
-      <section className={`px-6 py-24 border-y transition-colors duration-500 ${
-        darkMode ? 'bg-white/[0.02] border-white/5' : 'bg-slate-50 border-slate-100'
-      }`}>
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={staggerContainer}
-          >
-            <motion.h2 
-              variants={fadeInUp}
-              className={`text-4xl md:text-5xl font-black text-center mb-6 ${
-                darkMode ? 'text-white' : 'text-slate-900'
-              }`}
-            >
-              {t('landing.problem.title')}
-            </motion.h2>
-            <motion.p 
-              variants={fadeInUp}
-              className={`text-xl text-center mb-12 max-w-2xl mx-auto ${
-                darkMode ? 'text-slate-300' : 'text-slate-600'
-              }`}
-            >
-              {t('landing.problem.subtitle')}
-            </motion.p>
+        {/* Features */}
+        <Section id="features" className="border-y border-line bg-page" eyebrow={t('site.features.eyebrow')} title={t('site.features.title')} subtitle={t('site.features.subtitle')}>
+          <ul className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+            {FEATURES.map(({ key, icon: Icon }, i) => (
+              <li key={key} data-reveal style={{ '--i': i % 4 }}>
+                <Icon className="h-5 w-5 text-accent-text" aria-hidden="true" />
+                <h3 className="mt-3 text-h3 font-semibold text-fg">{t(`site.features.items.${key}.title`)}</h3>
+                <p className="mt-1.5 text-body text-muted">{t(`site.features.items.${key}.body`)}</p>
+              </li>
+            ))}
+          </ul>
+        </Section>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              {[
-                { icon: Clock, color: 'from-red-500 to-orange-500' },
-                { icon: Target, color: 'from-orange-500 to-yellow-500' },
-                { icon: Users, color: 'from-yellow-500 to-green-500' },
-                { icon: TrendingUp, color: 'from-green-500 to-blue-500' }
-              ].map((item, i) => {
-                const Icon = item.icon;
-                return (
-                  <motion.div
-                    key={i}
-                    variants={fadeInUp}
-                    className={`p-6 border rounded-2xl transition-all duration-300 group ${
-                      darkMode
-                        ? 'bg-white/5 border-white/10 hover:border-brand-400/40'
-                        : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-brand-300'
-                    }`}
-                  >
-                    <div className={`w-12 h-12 bg-gradient-to-br ${item.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                      <Icon className="w-6 h-6 text-white" />
-                    </div>
-                    <p className={`text-lg font-semibold ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{t('landing.problem.items')[i]}</p>
-                  </motion.div>
-                );
-              })}
-            </div>
+        {/* Trust */}
+        <Section id="trust" eyebrow={t('site.trust.eyebrow')} title={t('site.trust.title')}>
+          <ul className="mx-auto grid max-w-4xl gap-6 md:grid-cols-3">
+            {['honest', 'private', 'reliable'].map((k, i) => (
+              <li key={k} data-reveal style={{ '--i': i }} className="lift rounded-lg border border-line p-6">
+                <ShieldCheck className="h-5 w-5 text-success" aria-hidden="true" />
+                <h3 className="mt-3 text-h3 font-semibold text-fg">{t(`site.trust.${k}.title`)}</h3>
+                <p className="mt-1.5 text-body text-muted">{t(`site.trust.${k}.body`)}</p>
+              </li>
+            ))}
+          </ul>
+        </Section>
 
-            <motion.div 
-              variants={fadeInUp}
-              className={`mt-12 text-center p-8 rounded-2xl border-2 transition-colors duration-500 ${
-                darkMode
-                  ? 'bg-gradient-to-r from-brand-600/15 to-violet-600/15 border-brand-400/30'
-                  : 'bg-gradient-to-r from-brand-50 to-violet-50 border-brand-200'
-              }`}
-            >
-              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-brand-600 to-violet-600 flex items-center justify-center shadow-lg shadow-brand-600/30">
-                <Zap className="w-7 h-7 text-white" />
-              </div>
-              <h3 className={`text-2xl font-bold mb-2 ${
-                darkMode ? 'text-white' : 'text-slate-900'
-              }`}>{t('landing.problem.solveTitle')}</h3>
-              <p className={`text-lg ${
-                darkMode ? 'text-slate-300' : 'text-slate-700'
-              }`}>{t('landing.problem.solveText')}</p>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section className="px-6 py-24">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={staggerContainer}
-          >
-            <motion.h2 
-              variants={fadeInUp}
-              className="text-4xl md:text-5xl font-black text-center mb-16"
-            >
-              {t('landing.how.title')}
-            </motion.h2>
-
-            <div className="grid md:grid-cols-4 gap-8">
-              {[
-                { step: '01', icon: '📋' },
-                { step: '02', icon: '🎯' },
-                { step: '03', icon: '✨' },
-                { step: '04', icon: '🚀' }
-              ].map((item, i) => (
-                <motion.div
-                  key={i}
-                  variants={fadeInUp}
-                  className="relative text-center group"
-                >
-                  <div className={`absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl font-black ${
-                    darkMode ? 'text-white/10' : 'text-slate-900/10'
-                  }`}>
-                    {item.step}
+        {/* Pricing */}
+        <Section id="pricing" className="border-y border-line bg-page" eyebrow={t('site.pricing.eyebrow')} title={t('site.pricing.title')} subtitle={t('site.pricing.subtitle')}>
+          {plans === null ? null : plans.length === 0 ? (
+            <p className="text-center text-body text-muted">{t('site.pricing.unavailable')}</p>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {plans.slice().sort((a, b) => PLAN_ORDER.indexOf(a.id) - PLAN_ORDER.indexOf(b.id)).map((plan) => (
+                <div key={plan.id} data-reveal style={{ '--i': PLAN_ORDER.indexOf(plan.id) }} className={cn('lift flex flex-col rounded-lg border bg-surface p-6', plan.id === 'pro' ? 'border-accent ring-1 ring-accent' : 'border-line')}>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-h2 font-semibold text-fg">{t(`shell.plans.${plan.id}`)}</h3>
+                    {plan.comingSoon && <Badge>{t('billing.comingSoon')}</Badge>}
                   </div>
-                  <div className={`p-8 rounded-2xl border transition-all duration-300 hover:-translate-y-1 ${
-                    darkMode
-                      ? 'bg-white/5 border-white/10 hover:border-brand-400/40'
-                      : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-brand-300'
-                  }`}>
-                    <div className="text-5xl mb-4">{item.icon}</div>
-                    <h3 className={`text-xl font-bold mb-3 ${
-                      darkMode ? 'text-white' : 'text-slate-900'
-                    }`}>{t('landing.how.steps')[i].title}</h3>
-                    <p className={`text-sm leading-relaxed ${
-                      darkMode ? 'text-slate-300' : 'text-slate-600'
-                    }`}>{t('landing.how.steps')[i].desc}</p>
-                  </div>
-                  {i < 3 && (
-                    <div className="hidden md:block absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2">
-                      <ArrowRight className="w-6 h-6 text-brand-400" />
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* FEATURES */}
-      <section className={`px-6 py-24 border-y transition-colors duration-500 ${
-        darkMode ? 'bg-white/[0.02] border-white/5' : 'bg-slate-50 border-slate-100'
-      }`}>
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={staggerContainer}
-          >
-            <motion.h2 
-              variants={fadeInUp}
-              className="text-4xl md:text-5xl font-black text-center mb-6"
-            >
-              {t('landing.features.title')}
-            </motion.h2>
-            <motion.p
-              variants={fadeInUp}
-              className={`text-xl text-center mb-12 font-medium ${
-                darkMode ? 'text-slate-300' : 'text-slate-600'
-              }`}
-            >
-              {t('landing.features.subtitle')}
-            </motion.p>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              {[
-                { icon: Sparkles }, { icon: Target }, { icon: Zap },
-                { icon: Users }, { icon: Award }, { icon: Shield }
-              ].map((feature, i) => {
-                const Icon = feature.icon;
-                return (
-                  <motion.div
-                    key={i}
-                    variants={fadeInUp}
-                    className={`p-6 border rounded-2xl transition-all duration-300 group ${
-                      darkMode
-                        ? 'bg-white/5 border-white/10 hover:border-brand-400/40'
-                        : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-brand-300'
-                    }`}
-                  >
-                    <div className="w-14 h-14 bg-gradient-to-br from-brand-600 to-violet-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-brand-600/20">
-                      <Icon className="w-7 h-7 text-white" />
-                    </div>
-                    <h3 className={`text-xl font-bold mb-2 ${
-                      darkMode ? 'text-white' : 'text-slate-900'
-                    }`}>{t('landing.features.items')[i].title}</h3>
-                    <p className={`${
-                      darkMode ? 'text-slate-300' : 'text-slate-600'
-                    }`}>{t('landing.features.items')[i].desc}</p>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* PRICING SECTION */}
-      <section className="px-6 py-24">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={staggerContainer}
-          >
-            <motion.h2 
-              variants={fadeInUp}
-              className="text-4xl md:text-5xl font-black text-center mb-6"
-            >
-              {t('landing.pricing.title')}
-            </motion.h2>
-            <motion.p
-              variants={fadeInUp}
-              className={`text-xl text-center mb-12 font-medium ${
-                darkMode ? 'text-indigo-100' : 'text-slate-500'
-              }`}
-            >
-              {t('landing.pricing.subtitle')}
-            </motion.p>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {[
-                { id: 'free', name: 'Free', price: '$0', popular: false, icon: Zap, color: 'from-gray-500 to-gray-600', cta: t('landing.pricing.ctaFree') },
-                { id: 'starter', name: 'Starter', price: '$12', popular: false, icon: TrendingUp, color: 'from-blue-500 to-indigo-600', cta: t('landing.pricing.ctaTrial') },
-                { id: 'pro', name: 'Pro', price: '$19', popular: true, icon: Crown, color: 'from-purple-500 to-pink-600', cta: t('landing.pricing.ctaTrial') },
-                { id: 'agency', name: 'Agency', price: '$49', popular: false, icon: Building2, color: 'from-emerald-500 to-teal-600', cta: t('landing.pricing.comingSoon'), comingSoon: true }
-              ].map((plan, i) => {
-                const planFeatures = t('landing.pricing.features')[plan.id];
-                const planPeriod = plan.id === 'free' ? t('landing.pricing.forever') : t('landing.pricing.perMonth');
-                const Icon = plan.icon;
-                return (
-                  <motion.div
-                    key={i}
-                    variants={fadeInUp}
-                    className={`relative p-8 rounded-2xl backdrop-blur-sm transition-all duration-300 ${
-                      plan.popular 
-                        ? 'bg-gradient-to-br from-indigo-600 to-purple-600 border-2 border-yellow-400 scale-105 shadow-2xl' 
-                        : darkMode
-                          ? 'bg-white/5 border border-white/10 hover:bg-white/10'
-                          : 'bg-white border-slate-200 shadow-lg hover:shadow-xl hover:bg-slate-50'
-                    }`}
-                  >
-                    {plan.popular && (
-                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-yellow-400 to-orange-400 text-slate-900 font-bold text-sm rounded-full">
-                        {t('landing.pricing.mostPopular')}
-                      </div>
-                    )}
-                    
-                    <div className={`w-14 h-14 bg-gradient-to-br ${plan.color} rounded-xl flex items-center justify-center mb-4`}>
-                      <Icon className="w-8 h-8 text-white" />
-                    </div>
-                    
-                    <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-                    <div className="mb-6">
-                      <span className="text-5xl font-black">{plan.price}</span>
-                      <span className={`ml-2 ${
-                        darkMode ? 'text-indigo-200' : 'text-slate-600'
-                      }`}>/{planPeriod}</span>
-                    </div>
-                    <ul className="space-y-3 mb-8">
-                      {planFeatures.map((feature, j) => (
-                        <li key={j} className="flex items-start gap-2">
-                          <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                          <span className={`text-sm ${
-                            darkMode ? 'text-slate-200' : 'text-slate-700'
-                          }`}>{feature}</span>
+                  <p className="mt-1 min-h-10 text-small text-muted">{t(`billing.taglines.${plan.id}`)}</p>
+                  <p className="mt-4 flex items-baseline gap-1">
+                    <span className="text-display font-semibold tracking-tight text-fg">${plan.price}</span>
+                    <span className="text-small text-muted">{plan.price ? t('billing.month') : t('billing.forever')}</span>
+                  </p>
+                  {plan.comingSoon ? (
+                    <p className="mt-5 flex-1 text-small text-fg-2">{t('billing.agencyNote')}</p>
+                  ) : (
+                    <ul className="mt-5 flex-1 space-y-2">
+                      {planLines(plan, t).map((line) => (
+                        <li key={line.text} className={cn('flex gap-2 text-small', line.ok ? 'text-fg-2' : 'text-muted')}>
+                          {line.ok ? <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden="true" /> : <Minus className="mt-0.5 h-4 w-4 shrink-0 text-line-strong" aria-hidden="true" />}
+                          <span>{!line.ok && <span className="sr-only">{t('billing.notIncluded')} </span>}{line.text}</span>
                         </li>
                       ))}
                     </ul>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => !plan.comingSoon && navigate('/register')}
-                      disabled={plan.comingSoon}
-                      className={`w-full py-3 rounded-xl font-bold transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
-                        plan.popular
-                          ? 'bg-white text-indigo-600 hover:bg-gray-100'
-                          : 'bg-indigo-600 hover:bg-indigo-700'
-                      }`}
-                    >
-                      {plan.cta}
-                    </motion.button>
-                  </motion.div>
-                );
-              })}
+                  )}
+                  <div className="mt-6">
+                    {plan.comingSoon
+                      ? <Button variant="secondary" className="w-full" disabled>{t('billing.comingSoon')}</Button>
+                      : <Button as={Link} to="/register" variant={plan.id === 'pro' ? 'primary' : 'secondary'} className="w-full">{plan.price ? t('site.pricing.choose', { plan: t(`shell.plans.${plan.id}`) }) : t('site.hero.cta')}</Button>}
+                  </div>
+                </div>
+              ))}
             </div>
-          </motion.div>
-        </div>
-      </section>
+          )}
+          <p className="mt-6 text-center text-small text-muted">{t('site.pricing.note')} <Link to="/refunds" className="font-medium text-fg-2 underline underline-offset-2">{t('landing.footer.refunds')}</Link></p>
+        </Section>
 
-      {/* FINAL CTA */}
-      <section className="px-6 py-24">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          className="max-w-4xl mx-auto text-center p-12 bg-gradient-to-br from-brand-600 via-violet-600 to-brand-700 rounded-3xl shadow-2xl shadow-brand-600/30"
-        >
-          <h2 className="text-4xl md:text-5xl font-black mb-6 text-white">
-            {t('landing.finalCta.title')}
-          </h2>
-          <p className="text-xl mb-8 text-brand-100">
-            {t('landing.finalCta.subtitle')}
-          </p>
-          <div className="flex justify-center gap-4 flex-wrap">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/register')}
-              className="px-8 py-4 bg-white text-brand-700 font-bold rounded-2xl hover:bg-brand-50 transition-all shadow-xl text-lg"
-            >
-              {t('landing.finalCta.button')}
-            </motion.button>
+        {/* FAQ */}
+        <Section id="faq" eyebrow={t('site.faq.eyebrow')} title={t('site.faq.title')}>
+          <div data-reveal className="mx-auto max-w-3xl divide-y divide-line border-y border-line">
+            {['platforms', 'invent', 'data', 'language', 'cancel'].map((k) => (
+              <details key={k} className="group py-5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-h3 font-medium text-fg [&::-webkit-details-marker]:hidden">
+                  {t(`site.faq.${k}.q`)}
+                  <span className="text-muted transition-transform group-open:rotate-45" aria-hidden="true">+</span>
+                </summary>
+                <p className="mt-3 text-body text-muted">{t(`site.faq.${k}.a`)}</p>
+              </details>
+            ))}
           </div>
-        </motion.div>
-      </section>
+        </Section>
 
-      {/* FOOTER */}
-      <footer className="px-6 py-12 bg-slate-900/80 backdrop-blur-xl border-t border-white/10">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-3">
-              <Moon className="w-8 h-8 text-white" />
-              <div>
-                <div className="font-bold text-lg">LunarBid</div>
-                <div className="text-sm text-indigo-200">{t('landing.footer.tagline')}</div>
-              </div>
-            </div>
-            <div className="flex gap-8 text-sm">
-              <Link to="/privacy" className="hover:text-indigo-400 transition-colors">{t('landing.footer.privacy')}</Link>
-              <Link to="/terms" className="hover:text-indigo-400 transition-colors">{t('landing.footer.terms')}</Link>
-              <Link to="/refunds" className="hover:text-indigo-400 transition-colors">{t('landing.footer.refunds')}</Link>
-              <a href="mailto:support@lunarbid.ai" className="hover:text-indigo-400 transition-colors">{t('landing.footer.contact')}</a>
-            </div>
+        {/* Final CTA */}
+        <section className="px-5 pb-24 sm:px-8">
+          <div data-reveal className="relative mx-auto max-w-6xl overflow-hidden rounded-xl bg-[#11131a] px-6 py-14 text-center sm:px-12">
+            <div className="ambient-glow pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full opacity-60 blur-2xl" aria-hidden="true" />
+            <h2 className="font-document text-[2rem] font-medium leading-tight text-white sm:text-[2.5rem]">{t('site.final.title')}</h2>
+            <p className="mx-auto mt-3 max-w-xl text-body-lg text-slate-300">{t('site.final.body')}</p>
+            <Button as={Link} to="/register" size="lg" className="mt-8" rightIcon={ArrowRight}>{t('site.hero.cta')}</Button>
           </div>
-          <div className="mt-8 text-center text-sm text-indigo-200">
-            {t('landing.footer.rights', { year: new Date().getFullYear() })}
+        </section>
+      </main>
+
+      <footer className="border-t border-line px-5 py-10 sm:px-8">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <Logo />
+            <p className="mt-2 text-small text-muted">{t('site.footer.byNwee')}</p>
           </div>
+          <nav aria-label={t('site.footer.label')} className="flex flex-wrap gap-x-5 gap-y-2 text-small text-fg-2">
+            <Link to="/terms" className="hover:text-fg">{t('landing.footer.terms')}</Link>
+            <Link to="/privacy" className="hover:text-fg">{t('landing.footer.privacy')}</Link>
+            <Link to="/refunds" className="hover:text-fg">{t('landing.footer.refunds')}</Link>
+            <a href="mailto:support@lunarbid.ai" className="hover:text-fg">{t('landing.footer.contact')}</a>
+          </nav>
         </div>
+        <p className="mx-auto mt-8 max-w-6xl text-caption text-muted">© {new Date().getFullYear()} LunarBid. {t('site.footer.rights')}</p>
       </footer>
-
     </div>
   );
-};
-
-export default LandingPage;
+}

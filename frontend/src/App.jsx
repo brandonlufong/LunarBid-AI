@@ -4,10 +4,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './locales/LanguageContext.jsx';
 import { ToastProvider } from './components/UI/Toast';
-import Navbar from './components/navbar';
 import LandingPage from './components/LandingPage';
 import { Loader2 } from 'lucide-react';
-import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 
 // The landing page ships in the main bundle for a fast first paint; everything else loads on demand.
 const Login = lazy(() => import('./components/Auth/Login'));
@@ -19,6 +17,7 @@ const ForgotPassword = lazy(() => import('./components/Auth/ForgotPassword'));
 const ResetPassword = lazy(() => import('./components/Auth/ResetPassword'));
 const OAuthCallback = lazy(() => import('./components/Auth/OAuthCallback'));
 const VerifyEmail = lazy(() => import('./components/Auth/VerifyEmail'));
+const NotFound = lazy(() => import('./components/NotFound'));
 
 const PageLoading = () => (
   <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Loading">
@@ -30,15 +29,9 @@ const AnimatedRoutes = () => {
   const { user } = useAuth();
   const location = useLocation();
 
-  const pageTransition = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -20 },
-    transition: { duration: 0.4 },
-  };
 
   return (
-    <AnimatePresence mode="wait">
+    <>
       <Suspense fallback={<PageLoading />}>
       <Routes location={location} key={location.pathname}>
         {/* Landing Page */}
@@ -48,9 +41,9 @@ const AnimatedRoutes = () => {
             user ? (
               <Navigate to="/dashboard" replace />
             ) : (
-              <motion.div {...pageTransition}>
+              <div className="animate-fade">
                 <LandingPage />
-              </motion.div>
+              </div>
             )
           }
         />
@@ -62,9 +55,9 @@ const AnimatedRoutes = () => {
             user ? (
               <Navigate to="/dashboard" replace />
             ) : (
-              <motion.div {...pageTransition}>
+              <div className="animate-fade">
                 <Login onSwitch={() => (window.location.href = '/register')} />
-              </motion.div>
+              </div>
             )
           }
         />
@@ -76,9 +69,9 @@ const AnimatedRoutes = () => {
             user ? (
               <Navigate to="/dashboard" replace />
             ) : (
-              <motion.div {...pageTransition}>
+              <div className="animate-fade">
                 <Register onSwitch={() => (window.location.href = '/login')} />
-              </motion.div>
+              </div>
             )
           }
         />
@@ -88,9 +81,9 @@ const AnimatedRoutes = () => {
           path="/dashboard"
           element={
             user ? (
-              <motion.div {...pageTransition}>
+              <div className="animate-fade">
                 <Dashboard />
-              </motion.div>
+              </div>
             ) : (
               <Navigate to="/login" replace />
             )
@@ -98,8 +91,8 @@ const AnimatedRoutes = () => {
         />
 
         {/* Password reset + OAuth callback (public) */}
-        <Route path="/forgot-password" element={<motion.div {...pageTransition}><ForgotPassword /></motion.div>} />
-        <Route path="/reset-password" element={<motion.div {...pageTransition}><ResetPassword /></motion.div>} />
+        <Route path="/forgot-password" element={<div className="animate-fade"><ForgotPassword /></div>} />
+        <Route path="/reset-password" element={<div className="animate-fade"><ResetPassword /></div>} />
         <Route path="/oauth" element={<OAuthCallback />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
 
@@ -107,22 +100,22 @@ const AnimatedRoutes = () => {
         <Route
           path="/p/:token"
           element={
-            <motion.div {...pageTransition}>
+            <div className="animate-fade">
               <PublicProposal />
-            </motion.div>
+            </div>
           }
         />
 
         {/* Legal pages (public) */}
-        <Route path="/terms" element={<motion.div {...pageTransition}><LegalPage doc="terms" /></motion.div>} />
-        <Route path="/privacy" element={<motion.div {...pageTransition}><LegalPage doc="privacy" /></motion.div>} />
-        <Route path="/refunds" element={<motion.div {...pageTransition}><LegalPage doc="refunds" /></motion.div>} />
+        <Route path="/terms" element={<div className="animate-fade"><LegalPage doc="terms" /></div>} />
+        <Route path="/privacy" element={<div className="animate-fade"><LegalPage doc="privacy" /></div>} />
+        <Route path="/refunds" element={<div className="animate-fade"><LegalPage doc="refunds" /></div>} />
 
         {/* Catch-all → redirect to landing */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       </Suspense>
-    </AnimatePresence>
+    </>
   );
 };
 
@@ -142,7 +135,6 @@ const AppContent = () => {
 
   return (
     <Router>
-      <Navbar />
       <AnimatedRoutes />
     </Router>
   );
@@ -150,7 +142,7 @@ const AppContent = () => {
 
 function App() {
   return (
-    <MotionConfig reducedMotion="user">
+    <>
       <LanguageProvider>
         <ToastProvider>
           <AuthProvider>
@@ -158,7 +150,7 @@ function App() {
           </AuthProvider>
         </ToastProvider>
       </LanguageProvider>
-    </MotionConfig>
+    </>
   );
 }
 

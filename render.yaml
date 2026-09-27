@@ -1,4 +1,5 @@
-# API on Render (render.com → New → Blueprint → select this repository).
+# API on Render (render.com → New → Blueprint → select this repository). Serves https://api.lunarbid.ai.
+# Region: Frankfurt (closest Render region to Cameroon; put MongoDB Atlas in AWS eu-central-1 to match).
 # Secrets marked `sync: false` are entered in the Render dashboard, never committed.
 services:
   - type: web
@@ -6,6 +7,7 @@ services:
     runtime: node
     rootDir: backend
     plan: starter
+    region: frankfurt
     buildCommand: npm ci --omit=dev
     startCommand: node server.js
     healthCheckPath: /health
@@ -57,3 +59,23 @@ services:
         sync: false
       - key: SENTRY_DSN
         sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: S3_REGION
+        value: auto
+      - key: TOGETHER_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # Optional: Google / GitHub sign-in (leave unset to keep it off)
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      # Stripe variables above remain until billing moves to Paddle (planned; not implemented yet).

@@ -10,3 +10,6 @@ dist/
 
 # Uploaded files (stored locally in development)
 backend/uploads/
+
+# Wrangler local state
+.wrangler/

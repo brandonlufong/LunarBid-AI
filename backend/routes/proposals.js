@@ -9,11 +9,41 @@ const requireVerifiedEmail = require('../middleware/requireVerifiedEmail');
 const { generateProposal, generateJSON } = require('../services/aiService');
 const { buildProposalPrompt, buildAnalysisPrompt, buildTemplateProposal } = require('../services/prompts');
 const { reserve } = require('../services/usage');
+
+// Only suggest upgrading when a higher plan can actually be bought.
+const canUpgradeFrom = (plan) => plan === 'free' || plan === 'starter';
 const ProposalAnalytics = require('../models/ProposalAnalytics');
 const { aiLimiter, publicLimiter, sendLimiter } = require('../middleware/rateLimits');
 const { sendMail, isConfigured: mailerConfigured } = require('../services/mailer');
 const { proposalEmail } = require('../services/emails');
 const { displayUrl } = require('../services/storage');
+
+// Keep the analytics record in step with the proposal's status, so win rate and response
+// time reflect what users mark in their history (and emails sent from LunarBid).
+async function syncAnalyticsStatus(userId, proposalId, status) {
+  try {
+    const a = await ProposalAnalytics.findOne({ user: userId, proposal: proposalId });
+    if (!a) return;
+    a.status = status;
+    if (status === 'draft') {
+      a.dateSubmitted = undefined;
+      a.dateResponded = undefined;
+      a.responseTime = null;
+    } else {
+      if (!a.dateSubmitted) a.dateSubmitted = status === 'sent' ? new Date() : a.dateCreated || new Date();
+      if (status === 'accepted' || status === 'rejected') {
+        a.dateResponded = new Date();
+        a.responseTime = null; // recalculated on save
+      } else {
+        a.dateResponded = undefined;
+        a.responseTime = null;
+      }
+    }
+    await a.save();
+  } catch (err) {
+    console.error('Analytics sync failed:', err.message);
+  }
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const { TONES, LENGTHS, STATUSES, checkString, firstError } = require('../utils/validate');
@@ -113,10 +143,15 @@ router.post('/generate', auth, requireVerifiedEmail, aiLimiter, async (req, res)
     
     if (!canGenerate.allowed) {
       return res.status(403).json({ 
-        message: canGenerate.reason === 'daily_limit' 
-          ? `Daily limit of ${canGenerate.limit} proposals reached. Upgrade or wait until tomorrow.`
-          : `Monthly limit of ${canGenerate.limit} proposals reached. Upgrade for unlimited access.`,
+        message: canGenerate.reason === 'daily_limit'
+          ? (canUpgradeFrom(user.effectivePlan())
+            ? `You've used your ${canGenerate.limit} proposals for today. More are available tomorrow, or upgrade for a higher limit.`
+            : `You've reached the fair-use limit of ${canGenerate.limit} proposals today. It resets at midnight (server time).`)
+          : (canUpgradeFrom(user.effectivePlan())
+            ? `You've used all ${canGenerate.limit} proposals included this month. Upgrade to keep writing, or wait until the 1st.`
+            : `You've used all ${canGenerate.limit} proposals included this month. The allowance resets on the 1st.`),
         reason: canGenerate.reason,
+        canUpgrade: canUpgradeFrom(user.effectivePlan()),
         limit: canGenerate.limit,
         currentPlan: user.effectivePlan(),
         usage: {
@@ -306,6 +341,8 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Proposal not found' });
     }
 
+    if (status) await syncAnalyticsStatus(req.user._id, proposal._id, status);
+
     res.json({
       message: 'Proposal updated successfully',
       proposal
@@ -363,6 +400,7 @@ router.post('/:id/send', auth, requireVerifiedEmail, sendLimiter, async (req, re
     proposal.sentAt = new Date();
     proposal.updatedAt = new Date();
     await proposal.save();
+    await syncAnalyticsStatus(req.user._id, proposal._id, 'sent');
 
     res.json({ message: 'Proposal sent', proposal, sentTo: to, shareUrl: link });
   } catch (error) {
@@ -436,6 +474,7 @@ router.patch('/:id/status', auth, async (req, res) => {
     if (!proposal) {
       return res.status(404).json({ message: 'Proposal not found' });
     }
+    await syncAnalyticsStatus(req.user._id, proposal._id, status);
 
     res.json({
       message: 'Status updated successfully',

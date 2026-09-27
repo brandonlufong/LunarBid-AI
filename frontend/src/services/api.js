@@ -59,7 +59,8 @@ export const getProfile = () => api.get('/profile');
 export const generateProposal = (data) => api.post('/proposals/generate', data);
 export const analyzeJob = (data) => api.post('/proposals/analyze', data);
 // 20 per page, newest first; pass the previous response's nextCursor for the next page.
-export const getProposalHistory = (cursor) => api.get('/proposals/history', { params: cursor ? { cursor } : {} });
+export const getProposalHistory = (cursor, status) => api.get('/proposals/history', { params: { ...(cursor ? { cursor } : {}), ...(status ? { status } : {}) } });
+export const updateProposalStatus = (id, status) => api.patch(`/proposals/${id}/status`, { status });
 export const getProposal = (id) => api.get(`/proposals/${id}`);
 export const deleteProposal = (id) => api.delete(`/proposals/${id}`);
 export const updateProposal = (id, data) => api.put(`/proposals/${id}`, data);
@@ -71,6 +72,7 @@ export const getPublicProposal = (token) => api.get(`/proposals/public/${token}`
 // NEW: Subscription endpoints
 export const getSubscription = () => api.get('/subscription');
 // Billing: both return { url } to redirect to (Stripe Checkout or the Customer Portal).
+export const getPlans = () => api.get('/subscription/plans');
 export const createCheckout = (plan) => api.post('/subscription/checkout', { plan });
 export const openBillingPortal = () => api.post('/subscription/portal');
 export const upgradePlan = createCheckout; // kept for older imports

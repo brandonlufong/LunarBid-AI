@@ -1,310 +1,146 @@
-import React, { useState, useEffect } from 'react';
-import { updateProfile, getProfile } from '../../services/api';
+// Settings: profile (what the AI may say about you), preferences, security and your data.
+import React, { useEffect, useState } from 'react';
+import { Database, Monitor, Shield, User } from 'lucide-react';
+import { getProfile, updateProfile } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { User, Save, Loader2, Briefcase, Code, DollarSign, Globe, FileText, CheckCircle, Mic, Target } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
-import AccountData from './AccountData';
+import { useToast } from '../UI/Toast';
+import { Button, Card, CardHeader, Field, Input, PageHeader, Segmented, Skeleton, Textarea, cn } from '../ui';
 import AccountSecurity from './AccountSecurity';
+import AccountData from './AccountData';
 
-const ProfileSetup = () => {
-  const { updateUser } = useAuth();
-  const { darkMode } = useTheme();
+const SECTIONS = [
+  { id: 'profile', icon: User },
+  { id: 'preferences', icon: Monitor },
+  { id: 'security', icon: Shield },
+  { id: 'data', icon: Database },
+];
+const EMPTY = { role: '', experience: '', skills: '', hourlyRate: '', portfolio: '', bio: '', preferredTone: 'Professional' };
+
+function ProfileSection() {
+  const { updateUser, user } = useAuth();
   const { t } = useLanguage();
-  const [formData, setFormData] = useState({
-    experience: '',
-    skills: '',
-    hourlyRate: '',
-    portfolio: '',
-    bio: '',
-    role: '',
-    preferredTone: 'Professional',
-    platformFocus: []
-  });
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState('');
+  const toast = useToast();
+  const [form, setForm] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadProfile();
+    getProfile().then((r) => setForm({ ...EMPTY, ...(r.data || {}) })).catch(() => setForm({ ...EMPTY }));
   }, []);
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e?.target ? e.target.value : e }));
 
-  const loadProfile = async () => {
-    try {
-      const res = await getProfile();
-      // Merge over the defaults so a missing field can never break the form.
-      setFormData((prev) => ({ ...prev, ...(res.data || {}), platformFocus: res.data?.platformFocus || [] }));
-    } catch (err) {
-      console.error('Error loading profile');
-    }
-  };
-
-  const handleSubmit = async (e) => {
+  const save = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setSuccess('');
-
+    setSaving(true);
     try {
-      const res = await updateProfile(formData);
-      updateUser(res.data);
-      setSuccess(t('dashboard.profile.success'));
-      setTimeout(() => setSuccess(''), 3000);
+      const { role, experience, skills, hourlyRate, portfolio, bio, preferredTone } = form;
+      const res = await updateProfile({ role, experience, skills, hourlyRate, portfolio, bio, preferredTone });
+      updateUser({ ...user, ...res.data });
+      toast.success(t('settings.profile.saved'));
     } catch (err) {
-      console.error('Error updating profile');
+      toast.error(err.response?.data?.message || t('settings.profile.saveError'));
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
-
-  const handlePlatformToggle = (platform) => {
-    setFormData(prev => ({
-      ...prev,
-      platformFocus: prev.platformFocus.includes(platform)
-        ? prev.platformFocus.filter(p => p !== platform)
-        : [...prev.platformFocus, platform]
-    }));
-  };
-
-  const cardClasses = `rounded-xl p-5 border-2 transition-all duration-200 shadow-sm 
-    ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}
-    hover:border-indigo-300`;
-  const inputClasses = `w-full px-4 py-3 rounded-lg font-medium transition-all duration-200 border-2
-    ${darkMode ? 'bg-slate-800 border-slate-700 placeholder-slate-400 text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500' 
-                : 'bg-slate-50 border-slate-200 placeholder-slate-400 text-slate-800 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500'}`;
-  const labelClasses = `flex items-center gap-2 text-sm font-bold mb-3 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`;
-  const infoBoxClasses = `mt-8 p-5 rounded-xl border-2 transition-all duration-200 
-    ${darkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 text-blue-800'}`;
-  const successClasses = `mb-6 p-4 rounded-xl flex items-center gap-3 transition-all duration-500 border-2
-    ${darkMode ? 'bg-green-900/40 border-green-700 text-green-300' : 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 text-green-800'}`;
 
   return (
-    <div className="max-w-4xl mx-auto transition-colors duration-500">
-      <div className={darkMode ? 'transition-colors duration-500' : ''}>
-        
-        {/* Card */}
-        {/* <div className={darkMode ? 'bg-slate-900/95 border-slate-700 rounded-2xl shadow-xl p-8 transition-colors duration-500' 
-                               : 'bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl shadow-xl p-8 border-2 border-indigo-100'}> */}
-          
-          {/* Header */}
-          <div className={`flex items-center gap-3 mb-8 pb-6 border-b-2 ${darkMode ? 'border-slate-700' : 'border-indigo-100'}`}>
-            <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
-              <User className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                {t('dashboard.profile.title')}
-              </h2>
-              <p className={darkMode ? 'text-slate-400 text-sm mt-1 font-medium' : 'text-slate-500 text-sm mt-1 font-medium'}>
-                {t('dashboard.profile.subtitle')}
-              </p>
-            </div>
+    <Card id="profile" aria-labelledby="profile-title" className="scroll-mt-20">
+      <CardHeader titleId="profile-title" title={t('settings.profile.title')} description={t('settings.profile.subtitle')} />
+      {!form ? (
+        <div className="space-y-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-10" />)}</div>
+      ) : (
+        <form onSubmit={save} className="space-y-5">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label={t('settings.profile.role')} hint={t('settings.profile.roleHint')}>
+              <Input value={form.role} onChange={set('role')} maxLength={100} placeholder={t('settings.profile.rolePlaceholder')} />
+            </Field>
+            <Field label={t('settings.profile.rate')} optional={t('common.optional')} hint={t('settings.profile.rateHint')}>
+              <Input value={form.hourlyRate} onChange={set('hourlyRate')} maxLength={50} placeholder="$60/hour" />
+            </Field>
           </div>
+          <Field label={t('settings.profile.skills')} hint={t('settings.profile.skillsHint')}>
+            <Input value={form.skills} onChange={set('skills')} maxLength={500} placeholder={t('settings.profile.skillsPlaceholder')} />
+          </Field>
+          <Field label={t('settings.profile.experience')} hint={t('settings.profile.experienceHint')} counter={`${form.experience.length} / 2,000`}>
+            <Textarea rows={4} value={form.experience} onChange={set('experience')} maxLength={2000} placeholder={t('settings.profile.experiencePlaceholder')} />
+          </Field>
+          <Field label={t('settings.profile.bio')} optional={t('common.optional')} counter={`${form.bio.length} / 2,000`}>
+            <Textarea rows={3} value={form.bio} onChange={set('bio')} maxLength={2000} />
+          </Field>
+          <Field label={t('settings.profile.portfolio')} optional={t('common.optional')}>
+            <Input type="url" value={form.portfolio} onChange={set('portfolio')} maxLength={300} placeholder="https://" />
+          </Field>
+          <div>
+            <p className="mb-1.5 text-small font-medium text-fg">{t('settings.profile.tone')}</p>
+            <Segmented label={t('settings.profile.tone')} value={form.preferredTone} onChange={set('preferredTone')} describedBy="pref-tone-help"
+              options={[
+                { value: 'Professional', label: t('composer.tones.formal') },
+                { value: 'Friendly', label: t('composer.tones.friendly') },
+                { value: 'Persuasive', label: t('composer.tones.persuasive') },
+              ]} className="max-w-md" />
+            <p id="pref-tone-help" className="mt-1.5 text-caption text-muted">{t('settings.profile.toneHint')}</p>
+          </div>
+          <div className="flex flex-col-reverse gap-3 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-small text-muted">{t('settings.profile.honesty')}</p>
+            <Button type="submit" loading={saving}>{t('settings.profile.save')}</Button>
+          </div>
+        </form>
+      )}
+    </Card>
+  );
+}
 
-          {/* Success Message */}
-          {success && (
-            <div className={successClasses}>
-              <CheckCircle className="w-6 h-6 flex-shrink-0" />
-              <div>
-                <p className="font-bold">{success}</p>
-                <p className="text-sm">{t('dashboard.profile.successSub')}</p>
-              </div>
-            </div>
-          )}
+function PreferencesSection() {
+  const { t, currentLanguage, changeLanguage } = useLanguage();
+  const { darkMode, toggleTheme } = useTheme();
+  return (
+    <Card id="preferences" aria-labelledby="prefs-title" className="scroll-mt-20">
+      <CardHeader titleId="prefs-title" title={t('settings.prefs.title')} description={t('settings.prefs.subtitle')} />
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <p className="mb-1.5 text-small font-medium text-fg">{t('settings.prefs.language')}</p>
+          <Segmented label={t('settings.prefs.language')} value={currentLanguage} onChange={changeLanguage}
+            options={[{ value: 'en', label: 'English' }, { value: 'fr', label: 'Français' }]} />
+        </div>
+        <div>
+          <p className="mb-1.5 text-small font-medium text-fg">{t('settings.prefs.theme')}</p>
+          <Segmented label={t('settings.prefs.theme')} value={darkMode ? 'dark' : 'light'} onChange={(v) => { if ((v === 'dark') !== darkMode) toggleTheme(); }}
+            options={[{ value: 'light', label: t('settings.prefs.light') }, { value: 'dark', label: t('settings.prefs.dark') }]} />
+        </div>
+      </div>
+    </Card>
+  );
+}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            
-            {/* Professional Role */}
-            <div className={cardClasses}>
-              <label htmlFor="profile-field-1" className={labelClasses}>
-                <Briefcase className={`w-5 h-5 ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                {t('dashboard.profile.role')}
-              </label>
-              <input id="profile-field-1"
-                type="text"
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                placeholder={t('dashboard.profile.rolePlaceholder')}
-                className={inputClasses}
-              />
-              <p className={darkMode ? 'text-xs text-slate-400 mt-2 ml-1' : 'text-xs text-slate-500 mt-2 ml-1'}>
-                {t('dashboard.profile.roleHint')}
-              </p>
-            </div>
-
-            {/* Experience */}
-            <div className={cardClasses}>
-              <label htmlFor="profile-field-2" className={labelClasses}>
-                <Briefcase className={`w-5 h-5 ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                {t('dashboard.profile.experience')}
-              </label>
-              <textarea id="profile-field-2"
-                value={formData.experience}
-                onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
-                placeholder={t('dashboard.profile.experiencePlaceholder')}
-                rows={4}
-                className={`${inputClasses} resize-none`}
-              />
-            </div>
-
-            {/* Skills */}
-            <div className={cardClasses}>
-              <label htmlFor="profile-field-3" className={labelClasses}>
-                <Code className={`w-5 h-5 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
-                {t('dashboard.profile.skills')}
-              </label>
-              <input id="profile-field-3"
-                type="text"
-                value={formData.skills}
-                onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
-                placeholder={t('dashboard.profile.skillsPlaceholder')}
-                className={inputClasses}
-              />
-              <p className={darkMode ? 'text-xs text-slate-400 mt-2 ml-1' : 'text-xs text-slate-500 mt-2 ml-1'}>
-                {t('dashboard.profile.skillsHint')}
-              </p>
-            </div>
-
-            {/* Hourly Rate & Portfolio */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className={cardClasses}>
-                <label htmlFor="profile-field-4" className={labelClasses}>
-                  <DollarSign className={`w-5 h-5 ${darkMode ? 'text-green-400' : 'text-green-600'}`} />
-                  {t('dashboard.profile.hourlyRate')}
-                </label>
-                <input id="profile-field-4"
-                  type="text"
-                  value={formData.hourlyRate}
-                  onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
-                  placeholder={t('dashboard.profile.ratePlaceholder')}
-                  className={`${inputClasses} font-bold text-lg`}
-                />
-              </div>
-
-              <div className={cardClasses}>
-                <label htmlFor="profile-field-5" className={labelClasses}>
-                  <Globe className={`w-5 h-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                  {t('dashboard.profile.portfolio')}
-                </label>
-                <input id="profile-field-5"
-                  type="url"
-                  value={formData.portfolio}
-                  onChange={(e) => setFormData({ ...formData, portfolio: e.target.value })}
-                  placeholder="https://yourportfolio.com"
-                  className={inputClasses}
-                />
-              </div>
-            </div>
-
-            {/* Professional Bio */}
-            <div className={cardClasses}>
-              <label htmlFor="profile-field-6" className={labelClasses}>
-                <FileText className={`w-5 h-5 ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                {t('dashboard.profile.bio')}
-              </label>
-              <textarea id="profile-field-6"
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                placeholder={t('dashboard.profile.bioPlaceholder')}
-                rows={5}
-                className={`${inputClasses} resize-none`}
-              />
-              <p className={darkMode ? 'text-xs text-slate-400 mt-2 ml-1' : 'text-xs text-slate-500 mt-2 ml-1'}>
-                {t('dashboard.profile.bioHint')}
-              </p>
-            </div>
-
-            {/* Preferred Tone */}
-            <div className={cardClasses}>
-              <label htmlFor="profile-field-7" className={labelClasses}>
-                <Mic className={`w-5 h-5 ${darkMode ? 'text-orange-400' : 'text-orange-600'}`} />
-                {t('dashboard.profile.tone')}
-              </label>
-              <select id="profile-field-7"
-                value={formData.preferredTone}
-                onChange={(e) => setFormData({ ...formData, preferredTone: e.target.value })}
-                className={inputClasses}
-              >
-                <option value="Professional">{t('dashboard.profile.toneProfessional')}</option>
-                <option value="Friendly">{t('dashboard.profile.toneFriendly')}</option>
-                <option value="Persuasive">{t('dashboard.profile.tonePersuasive')}</option>
-              </select>
-              <p className={darkMode ? 'text-xs text-slate-400 mt-2 ml-1' : 'text-xs text-slate-500 mt-2 ml-1'}>
-                {t('dashboard.profile.toneHint')}
-              </p>
-            </div>
-
-            {/* Platform Focus */}
-            <div className={cardClasses}>
-              <label id="profile-group-8" className={labelClasses}>
-                <Target className={`w-5 h-5 ${darkMode ? 'text-rose-400' : 'text-rose-600'}`} />
-                {t('dashboard.profile.platformFocus')}
-              </label>
-              <div role="group" aria-labelledby="profile-group-8" className="space-y-3">
-                {['Upwork', 'Fiverr', 'Freelancer'].map((platform) => (
-                  <label key={platform} className="flex items-center gap-3 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={formData.platformFocus.includes(platform)}
-                      onChange={() => handlePlatformToggle(platform)}
-                      className={`w-5 h-5 rounded-lg cursor-pointer transition-all
-                        ${formData.platformFocus.includes(platform)
-                          ? 'bg-gradient-to-r from-indigo-500 to-purple-600 border-indigo-500'
-                          : darkMode 
-                            ? 'bg-slate-700 border-slate-600' 
-                            : 'bg-slate-100 border-slate-300'
-                        } border-2`}
-                    />
-                    <span className={`font-medium group-hover:translate-x-1 transition-transform ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                      {platform}
-                    </span>
-                  </label>
-                ))}
-              </div>
-              <p className={darkMode ? 'text-xs text-slate-400 mt-3 ml-1' : 'text-xs text-slate-500 mt-3 ml-1'}>
-                {t('dashboard.profile.platformHint')}
-              </p>
-            </div>
-
-            {/* Save Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 transform hover:scale-105 active:scale-95"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                  <span>{t('dashboard.profile.saving')}</span>
-                </>
-              ) : (
-                <>
-                  <Save className="w-6 h-6" />
-                  <span>{t('dashboard.profile.save')}</span>
-                </>
-              )}
+export default function ProfileSetup() {
+  const { t } = useLanguage();
+  const [active, setActive] = useState('profile');
+  const jump = (id) => {
+    setActive(id);
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  return (
+    <div>
+      <PageHeader title={t('settings.title')} description={t('settings.subtitle')} />
+      <div className="grid items-start gap-6 lg:grid-cols-[200px_minmax(0,1fr)]">
+        <nav aria-label={t('settings.sectionsLabel')} className="flex gap-1 overflow-x-auto lg:sticky lg:top-6 lg:flex-col">
+          {SECTIONS.map(({ id, icon: Icon }) => (
+            <button key={id} type="button" onClick={() => jump(id)} aria-current={active === id ? 'true' : undefined}
+              className={cn('flex h-9 shrink-0 items-center gap-2 rounded-md px-3 text-body font-medium transition-colors',
+                active === id ? 'bg-accent-soft text-accent-text' : 'text-fg-2 hover:bg-subtle hover:text-fg')}>
+              <Icon className="h-4 w-4" aria-hidden="true" />{t(`settings.sections.${id}`)}
             </button>
-          </form>
-
-          {/* Info Box */}
-          <div className={infoBoxClasses}>
-            <h3 className="font-bold mb-2 flex items-center gap-2">
-              <User className="w-5 h-5" />
-              {t('dashboard.profile.whyTitle')}
-            </h3>
-            <ul className="text-sm space-y-1 ml-7">
-              {t('dashboard.profile.whyList').map((item, i) => (
-                <li key={i}>{item}</li>
-              ))}
-            </ul>
-          </div>
-
+          ))}
+        </nav>
+        <div className="min-w-0 space-y-6">
+          <ProfileSection />
+          <PreferencesSection />
           <AccountSecurity />
           <AccountData />
-
-        {/* </div> */}
+        </div>
       </div>
     </div>
   );
-};
-
-export default ProfileSetup;
+}

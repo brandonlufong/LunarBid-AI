@@ -1,7 +1,4 @@
-# Frontend on Netlify. The site builds from the frontend/ folder.
-# Set in Netlify → Site configuration → Environment variables:
-#   VITE_API_URL     e.g. https://api.lunarbid.ai/api
-#   VITE_SENTRY_DSN  optional
+# PREVIEW ONLY. Production is Cloudflare (frontend/wrangler.jsonc). Headers come from frontend/public/_headers.
 [build]
   base = "frontend"
   command = "npm run build"
@@ -10,21 +7,7 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# Single-page app: every route is served by index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    X-Frame-Options = "DENY"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
