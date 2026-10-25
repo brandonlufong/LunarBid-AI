@@ -5,7 +5,7 @@ import { Compass } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../locales/LanguageContext.jsx';
 import { Logo } from './app/Logo';
-import { Button } from './ui';
+import { Button } from './UI';
 
 export default function NotFound() {
   const { user } = useAuth();

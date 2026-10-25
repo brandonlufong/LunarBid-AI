@@ -6,7 +6,7 @@ import { Check, Copy, FileWarning, Printer } from 'lucide-react';
 import { getPublicProposal } from '../services/api';
 import { useLanguage } from '../locales/LanguageContext.jsx';
 import { useToast } from './UI/Toast';
-import { Alert, Avatar, Button, EmptyState, Skeleton } from './ui';
+import { Alert, Avatar, Button, EmptyState, Skeleton } from './UI';
 import { LogoMark } from './app/Logo';
 import { formatDate } from './Dashboard/proposalMeta.jsx';
 

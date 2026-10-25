@@ -10,7 +10,7 @@ import { getPlans } from '../services/api';
 import { useLanguage } from '../locales/LanguageContext.jsx';
 import { Logo } from './app/Logo';
 import { AuthControls } from './Auth/AuthShell';
-import { Badge, Button, cn } from './ui';
+import { Badge, Button, cn } from './UI';
 import ProductPreview from './site/ProductPreview';
 import { useParallax, useReveal, useScrolled } from './site/useLandingMotion';
 import { PLAN_ORDER, planLines } from './billing/planLines';
