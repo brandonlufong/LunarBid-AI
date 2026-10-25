@@ -40,8 +40,14 @@ function checkEnv() {
   const aiKeys = ['GROQ_API_KEY', 'TOGETHER_API_KEY', 'OPENROUTER_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY'];
   if (!aiKeys.some((k) => !looksPlaceholder(env[k]))) errors.push(`at least one AI provider key is required (${aiKeys.join(', ')})`);
 
-  if (looksPlaceholder(env.SUPPORT_EMAIL_PASSWORD) && looksPlaceholder(env.SMTP_PASSWORD)) {
-    (isProd ? errors : warnings).push('email is not configured: password-reset and support emails cannot be sent');
+  const hasResend = !looksPlaceholder(env.RESEND_API_KEY);
+  const hasSmtp = !looksPlaceholder(env.SMTP_PASSWORD);
+  const hasLegacyEmail = !looksPlaceholder(env.SUPPORT_EMAIL_PASSWORD);
+  if (!hasResend && !hasSmtp && !hasLegacyEmail) {
+    (isProd ? errors : warnings).push('email is not configured: set RESEND_API_KEY or SMTP credentials');
+  }
+  if (hasResend && looksPlaceholder(env.EMAIL_FROM)) {
+    errors.push('EMAIL_FROM is required when using RESEND_API_KEY');
   }
   if (isProd && !env.SENTRY_DSN) warnings.push('SENTRY_DSN is not set: errors will not be reported');
   if (isProd && !env.S3_BUCKET) warnings.push('S3_BUCKET is not set: uploaded logos are stored on local disk and may be lost on redeploy');

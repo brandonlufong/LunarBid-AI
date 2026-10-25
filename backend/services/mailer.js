@@ -4,6 +4,14 @@
 // the reset link in the API response) instead of silently failing.
 const nodemailer = require('nodemailer');
 
+const resendConfigured = () => {
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  return Boolean(key && from &&
+    !/your_|change_this|xxx|placeholder/i.test(key) &&
+    !/your_|change_this|xxx|placeholder/i.test(from));
+};
+
 const PLACEHOLDERS = ['your_app_password', 'your_email_password', '', undefined, null];
 
 // Preferred: any transactional provider over SMTP (Postmark, Resend, Amazon SES, Mailgun...)
@@ -12,6 +20,7 @@ const PLACEHOLDERS = ['your_app_password', 'your_email_password', '', undefined,
 const smtpConfigured = () => !!process.env.SMTP_HOST && !PLACEHOLDERS.includes(process.env.SMTP_PASSWORD);
 
 const isConfigured = () => {
+  if (resendConfigured()) return true;
   if (smtpConfigured()) return true;
   const pass = process.env.SUPPORT_EMAIL_PASSWORD;
   const user = process.env.SUPPORT_EMAIL;
@@ -41,6 +50,32 @@ const getTransporter = () => {
 const sendMail = async ({ to, subject, html, text, replyTo }) => {
   if (!isConfigured()) return { sent: false, reason: 'not_configured' };
   try {
+    if (resendConfigured()) {
+      // Render Free blocks SMTP ports; Resend HTTPS works without them.
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.EMAIL_FROM,
+          to: Array.isArray(to) ? to : [to],
+          subject,
+          ...(html ? { html } : {}),
+          ...(text ? { text } : {}),
+          ...(replyTo ? { reply_to: replyTo } : {}),
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) {
+        console.error('Resend email request failed:', response.status);
+        return { sent: false, reason: 'send_failed' };
+      }
+      return { sent: true };
+    }
+
+    // Preserve SMTP/Gmail fallback for local development or other hosts.
     await getTransporter().sendMail({
       from: fromAddress(),
       ...(replyTo ? { replyTo } : {}),
@@ -55,5 +90,4 @@ const sendMail = async ({ to, subject, html, text, replyTo }) => {
     return { sent: false, reason: 'send_failed' };
   }
 };
-
 module.exports = { sendMail, isConfigured };

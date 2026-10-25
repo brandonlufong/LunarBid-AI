@@ -5,7 +5,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
-const nodemailer = require('nodemailer'); // You'll need to install this: npm install nodemailer
+const { sendMail } = require('../services/mailer');
 
 // Support Ticket Schema
 const supportTicketSchema = new mongoose.Schema({
@@ -102,14 +102,6 @@ supportTicketSchema.pre('save', function(next) {
 
 const SupportTicket = mongoose.model('SupportTicket', supportTicketSchema);
 
-// Email transporter setup (configure with your email service)
-const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail',
-  auth: {
-    user: process.env.SUPPORT_EMAIL,
-    pass: process.env.SUPPORT_EMAIL_PASSWORD
-  }
-});
 
 // SLA Response times by plan
 const SLA_RESPONSE_TIMES = {
@@ -378,7 +370,10 @@ async function sendTicketConfirmationEmail(ticket) {
       `
     };
     
-    await transporter.sendMail(mailOptions);
+    const result = await sendMail(mailOptions);
+    if (!result.sent) {
+      console.error('Support email delivery failed:', result.reason);
+    }
   } catch (error) {
     console.error('Error sending confirmation email:', error);
   }
@@ -410,7 +405,10 @@ async function notifySupportTeam(ticket, isUpdate = false) {
       `
     };
     
-    await transporter.sendMail(mailOptions);
+    const result = await sendMail(mailOptions);
+    if (!result.sent) {
+      console.error('Support email delivery failed:', result.reason);
+    }
   } catch (error) {
     console.error('Error notifying support team:', error);
   }
