@@ -6,7 +6,7 @@ import { exportAccountData, deleteAccount } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { useToast } from '../UI/Toast';
-import { Alert, Button, Card, CardHeader, Field, Input, Modal } from '../ui';
+import { Alert, Button, Card, CardHeader, Field, Input, Modal } from '../UI';
 import PasswordInput from '../Auth/PasswordInput';
 
 export default function AccountData() {

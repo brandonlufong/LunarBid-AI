@@ -5,7 +5,7 @@ import { CheckCircle2, Clock, LifeBuoy, Mail } from 'lucide-react';
 import api from '../../services/api';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { useToast } from '../UI/Toast';
-import { Alert, Badge, Button, Card, CardHeader, EmptyState, Field, Input, PageHeader, Select, Skeleton, Textarea } from '../ui';
+import { Alert, Badge, Button, Card, CardHeader, EmptyState, Field, Input, PageHeader, Select, Skeleton, Textarea } from '../UI';
 import { formatDate } from './proposalMeta.jsx';
 
 const CATEGORIES = ['general', 'technical', 'bug_report', 'billing', 'feature_request'];

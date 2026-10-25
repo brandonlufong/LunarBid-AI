@@ -6,7 +6,7 @@ import { changePassword, logoutAllDevices } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { useToast } from '../UI/Toast';
-import { Alert, Button, Card, CardHeader, Field } from '../ui';
+import { Alert, Button, Card, CardHeader, Field } from '../UI';
 import PasswordInput from '../Auth/PasswordInput';
 
 export default function AccountSecurity() {

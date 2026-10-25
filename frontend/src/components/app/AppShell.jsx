@@ -6,7 +6,7 @@ import {
   Menu as MenuIcon, X, LogOut, Moon, Sun, Languages, ChevronsUpDown, Check,
 } from 'lucide-react';
 import { Logo } from './Logo';
-import { Avatar, Badge, Button, IconButton, Menu, UsageMeter, cn } from '../ui';
+import { Avatar, Badge, Button, IconButton, Menu, UsageMeter, cn } from '../UI';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../locales/LanguageContext.jsx';

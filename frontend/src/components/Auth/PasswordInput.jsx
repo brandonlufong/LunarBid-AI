@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { Input } from '../ui';
+import { Input } from '../UI';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 
 /** Password field with a show/hide toggle. Props pass through to the input (id, aria-* from Field). */

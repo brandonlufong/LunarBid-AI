@@ -5,7 +5,7 @@ import { ArrowRight, CheckCircle2, Circle, ClipboardPaste, FilePlus2, Files, Pen
 import { getProfile, getProposalHistory } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
-import { Badge, Button, Card, CardHeader, EmptyState, PageHeader, Skeleton, UsageMeter } from '../ui';
+import { Badge, Button, Card, CardHeader, EmptyState, PageHeader, Skeleton, UsageMeter } from '../UI';
 import { StatusBadge, formatDate } from './proposalMeta.jsx';
 
 function HowItWorks() {

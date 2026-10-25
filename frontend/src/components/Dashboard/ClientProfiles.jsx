@@ -5,7 +5,7 @@ import { FilePlus2, Lock, Pencil, Plus, Search, Star, Trash2, Users } from 'luci
 import api from '../../services/api';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { useToast } from '../UI/Toast';
-import { Alert, Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Skeleton, Textarea, cn } from '../ui';
+import { Alert, Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Skeleton, Textarea, cn } from '../UI';
 
 const EMPTY = { profileName: '', companyName: '', industry: '', contactPerson: '', email: '', phone: '', preferredTone: 'friendly', preferredStyle: 'medium', notes: '', tags: [] };
 

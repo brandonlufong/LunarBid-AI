@@ -6,7 +6,7 @@ import { analyzeJob, generateProposal, getProfile } from '../../services/api';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { useToast } from '../UI/Toast';
 import { TEMPLATE_META } from '../../config/proposalTemplates';
-import { Alert, Button, Card, Field, Input, Menu, PageHeader, Segmented, Skeleton, Textarea } from '../ui';
+import { Alert, Button, Card, Field, Input, Menu, PageHeader, Segmented, Skeleton, Textarea } from '../UI';
 import ProposalDocument from '../proposal/ProposalDocument';
 import AnalysisPanel from '../proposal/AnalysisPanel';
 

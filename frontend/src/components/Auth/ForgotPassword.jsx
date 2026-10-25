@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, MailCheck } from 'lucide-react';
 import { forgotPassword } from '../../services/api';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
-import { Button, Field, Input } from '../ui';
+import { Button, Field, Input } from '../UI';
 import AuthShell from './AuthShell';
 
 export default function ForgotPassword() {

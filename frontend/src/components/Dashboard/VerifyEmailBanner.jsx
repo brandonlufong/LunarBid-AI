@@ -1,6 +1,6 @@
 // Shown until the user confirms their email; AI features need a confirmed address.
 import React, { useState } from 'react';
-import { Alert, Button } from '../ui';
+import { Alert, Button } from '../UI';
 import { resendVerification } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../locales/LanguageContext.jsx';

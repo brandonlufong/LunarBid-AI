@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { useToast } from '../UI/Toast';
-import { Button, Card, CardHeader, Field, Input, PageHeader, Segmented } from '../ui';
+import { Button, Card, CardHeader, Field, Input, PageHeader, Segmented } from '../UI';
 
 const COMPLEXITY = { low: 0, medium: 0.15, high: 0.35 };
 const RUSH = 0.25;

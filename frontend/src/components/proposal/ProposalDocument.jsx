@@ -7,7 +7,7 @@ import {
 import { shareProposal, unshareProposal, updateProposal } from '../../services/api';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { useToast } from '../UI/Toast';
-import { Alert, Badge, Button, IconButton, Menu, cn } from '../ui';
+import { Alert, Badge, Button, IconButton, Menu, cn } from '../UI';
 import { exportProposal, wordCount } from './exporters';
 import SendDialog from './SendDialog';
 import { formatDate } from '../Dashboard/proposalMeta.jsx';

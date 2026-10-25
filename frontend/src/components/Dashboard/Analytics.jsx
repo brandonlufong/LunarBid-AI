@@ -6,7 +6,7 @@ import { BarChart3, Download, Lock } from 'lucide-react';
 import api from '../../services/api';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { useToast } from '../UI/Toast';
-import { Alert, Button, Card, CardHeader, EmptyState, PageHeader, Select, Skeleton } from '../ui';
+import { Alert, Button, Card, CardHeader, EmptyState, PageHeader, Select, Skeleton } from '../UI';
 
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 

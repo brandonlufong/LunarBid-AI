@@ -1,6 +1,6 @@
 // Shared proposal status badge and date formatting (Home, History, editor).
 import React from 'react';
-import { Badge } from '../ui';
+import { Badge } from '../UI';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 
 const TONE = { draft: 'neutral', sent: 'accent', accepted: 'success', rejected: 'danger' };

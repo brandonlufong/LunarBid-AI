@@ -5,7 +5,7 @@ import { ImageUp, Lock, RotateCcw, Trash2 } from 'lucide-react';
 import api from '../../services/api';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { useToast } from '../UI/Toast';
-import { Alert, Avatar, Button, Card, CardHeader, EmptyState, Field, Input, Modal, PageHeader, Skeleton } from '../ui';
+import { Alert, Avatar, Button, Card, CardHeader, EmptyState, Field, Input, Modal, PageHeader, Skeleton } from '../UI';
 
 const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 

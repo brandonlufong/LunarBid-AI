@@ -6,7 +6,7 @@ import { Check, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { Logo } from '../app/Logo';
-import { IconButton } from '../ui';
+import { IconButton } from '../UI';
 
 function LanguageToggle() {
   const { currentLanguage, changeLanguage } = useLanguage();

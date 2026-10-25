@@ -14,7 +14,7 @@ import ProfileSetup from './ProfileSetup';
 import Subscription from './Subscription';
 import PricingCalculator from './PricingCalculator';
 import Support from './Support';
-import { Skeleton } from '../ui';
+import { Skeleton } from '../UI';
 
 // Analytics pulls in the chart library, so it loads only when its tab is opened.
 const Analytics = lazy(() => import('./Analytics'));

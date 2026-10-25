@@ -3,7 +3,7 @@
 import React from 'react';
 import { AlertTriangle, Lightbulb, ListChecks, Target, X } from 'lucide-react';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
-import { Badge, Button, Card, IconButton, Skeleton } from '../ui';
+import { Badge, Button, Card, IconButton, Skeleton } from '../UI';
 
 function Section({ icon: Icon, title, items, tone }) {
   if (!items?.length) return null;

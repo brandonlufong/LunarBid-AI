@@ -7,7 +7,7 @@ import { Check, CreditCard, Loader2, Minus } from 'lucide-react';
 import { createCheckout, getPlans, getSubscription, openBillingPortal } from '../../services/api';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { useToast } from '../UI/Toast';
-import { Alert, Badge, Button, Card, PageHeader, Skeleton, UsageMeter, cn } from '../ui';
+import { Alert, Badge, Button, Card, PageHeader, Skeleton, UsageMeter, cn } from '../UI';
 import { formatDate } from './proposalMeta.jsx';
 import { planLines, PLAN_ORDER as ORDER } from '../billing/planLines';
 

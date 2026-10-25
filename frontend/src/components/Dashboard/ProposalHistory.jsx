@@ -5,7 +5,7 @@ import { ArrowLeft, Copy as CopyIcon, FilePlus2, Files, Trash2 } from 'lucide-re
 import { deleteProposal, getProposal, getProposalHistory, updateProposalStatus } from '../../services/api';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { useToast } from '../UI/Toast';
-import { Alert, Button, Card, EmptyState, IconButton, Modal, PageHeader, Select, Skeleton, cn } from '../ui';
+import { Alert, Button, Card, EmptyState, IconButton, Modal, PageHeader, Select, Skeleton, cn } from '../UI';
 import ProposalDocument from '../proposal/ProposalDocument';
 import { STATUSES, StatusBadge, formatDate } from './proposalMeta.jsx';
 

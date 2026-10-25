@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../ui/cn';
+import { cn } from '../UI/cn';
 
 /** LunarBid mark: a crescent with a small moonlight-gold star, on the brand indigo. */
 export function LogoMark({ size = 28, className }) {

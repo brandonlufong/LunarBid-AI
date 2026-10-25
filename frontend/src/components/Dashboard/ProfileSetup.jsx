@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { useToast } from '../UI/Toast';
-import { Button, Card, CardHeader, Field, Input, PageHeader, Segmented, Skeleton, Textarea, cn } from '../ui';
+import { Button, Card, CardHeader, Field, Input, PageHeader, Segmented, Skeleton, Textarea, cn } from '../UI';
 import AccountSecurity from './AccountSecurity';
 import AccountData from './AccountData';
 

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { login } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
-import { Alert, Button, Field, Input } from '../ui';
+import { Alert, Button, Field, Input } from '../UI';
 import AuthShell from './AuthShell';
 import SocialButtons from './SocialButtons';
 import PasswordInput from './PasswordInput';

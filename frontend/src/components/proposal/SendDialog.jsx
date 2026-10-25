@@ -5,7 +5,7 @@ import { sendProposal } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
 import { useToast } from '../UI/Toast';
-import { Alert, Button, Field, Input, Modal, Textarea } from '../ui';
+import { Alert, Button, Field, Input, Modal, Textarea } from '../UI';
 
 export default function SendDialog({ open, onClose, proposalId, title, getText, onSent }) {
   const { user } = useAuth();

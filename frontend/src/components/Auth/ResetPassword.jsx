@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { resetPassword } from '../../services/api';
 import { useLanguage } from '../../locales/LanguageContext.jsx';
-import { Alert, Button, Field } from '../ui';
+import { Alert, Button, Field } from '../UI';
 import AuthShell from './AuthShell';
 import PasswordInput from './PasswordInput';
 
