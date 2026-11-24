@@ -9,6 +9,22 @@ const requireVerifiedEmail = require('../middleware/requireVerifiedEmail');
 const { generateProposal, generateJSON } = require('../services/aiService');
 const { buildProposalPrompt, buildAnalysisPrompt, buildTemplateProposal } = require('../services/prompts');
 const { reserve } = require('../services/usage');
+const beta = require('../config/beta');
+const spend = require('../services/spend');
+
+// Emergency kill switch: refuse AI work when disabled (set AI_GENERATION_ENABLED=false).
+const aiPaused = (res) =>
+  res.status(503).json({
+    message: 'AI generation is temporarily paused for maintenance. Please try again shortly.',
+    reason: 'ai_paused',
+  });
+
+// Application-wide spend ceiling reached (protects the budget during beta).
+const atCapacity = (res) =>
+  res.status(503).json({
+    message: 'AI capacity for now has been reached. Please try again a little later.',
+    reason: 'capacity',
+  });
 
 // Only suggest upgrading when a higher plan can actually be bought.
 const canUpgradeFrom = (plan) => plan === 'free' || plan === 'starter';
@@ -56,6 +72,8 @@ const { TONES, LENGTHS, STATUSES, checkString, firstError } = require('../utils/
 
 router.post('/analyze', auth, requireVerifiedEmail, aiLimiter, async (req, res) => {
   try {
+    if (!beta.AI_GENERATION_ENABLED) return aiPaused(res);
+    if (!(await spend.withinCeiling()).allowed) return atCapacity(res);
     const { jobDescription, jobTitle } = req.body;
     const invalid = firstError(
       checkString(jobDescription, 'jobDescription', { required: true, min: 20 }),
@@ -88,6 +106,7 @@ router.post('/analyze', auth, requireVerifiedEmail, aiLimiter, async (req, res) 
       await canAnalyze.release();
       return res.status(503).json({ message: 'Job analysis is temporarily unavailable. Please try again in a minute. This attempt was not counted.' });
     }
+    await spend.record('analysis');
 
     // Normalize / clamp
     const clampEnum = (v, allowed, def) => (allowed.includes(v) ? v : def);
@@ -121,6 +140,8 @@ router.post('/analyze', auth, requireVerifiedEmail, aiLimiter, async (req, res) 
 // ===============================
 router.post('/generate', auth, requireVerifiedEmail, aiLimiter, async (req, res) => {
   try {
+    if (!beta.AI_GENERATION_ENABLED) return aiPaused(res);
+    if (!(await spend.withinCeiling()).allowed) return atCapacity(res);
     const { jobTitle, jobDescription, clientName, budget, tone, length } = req.body;
 
     const invalid = firstError(
@@ -183,8 +204,9 @@ router.post('/generate', auth, requireVerifiedEmail, aiLimiter, async (req, res)
       usedFallback = true;
     }
 
-    // A template fallback is not charged against the quota
+    // A template fallback is not charged against the quota or the spend meter.
     if (usedFallback) await canGenerate.release();
+    else await spend.record('proposal');
 
     if (!generatedProposal) {
       return res.status(500).json({ message: 'Failed to generate proposal text' });

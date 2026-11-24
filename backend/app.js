@@ -66,6 +66,7 @@ if (!require('./services/storage').useS3()) {
 }
 
 app.use('/api', apiLimiter);
+app.use('/api/meta', require('./routes/meta'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/proposals', require('./routes/proposals'));

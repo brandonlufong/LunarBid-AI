@@ -19,6 +19,7 @@ const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${process.env.P
 
 const { signSession, revokeSessions } = require('../services/session');
 const { verificationEmail } = require('../services/emails');
+const beta = require('../config/beta');
 const signToken = signSession;
 const publicUser = (user) => ({
   id: user._id,
@@ -51,6 +52,9 @@ const hashToken = (raw) => crypto.createHash('sha256').update(raw).digest('hex')
 // Register
 router.post('/register', signupLimiter, async (req, res) => {
   try {
+    if (!beta.REGISTRATION_ENABLED) {
+      return res.status(403).json({ message: 'New sign-ups are paused right now. Please check back soon.' });
+    }
     const { name, password } = req.body;
     const email = normalizeEmail(req.body.email);
 

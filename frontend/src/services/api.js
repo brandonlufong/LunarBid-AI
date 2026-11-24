@@ -48,6 +48,7 @@ export const getCurrentUser = () => api.get('/auth/me');
 export const forgotPassword = (email) => api.post('/auth/forgot-password', { email });
 export const resetPassword = (token, password) => api.post('/auth/reset-password', { token, password });
 export const getAuthProviders = () => api.get('/auth/providers');
+export const getMeta = () => api.get('/meta');
 export const OAUTH_URL = (provider) => `${API_URL}/auth/${provider}`;
 export const exchangeOAuthCode = (code) => api.post('/auth/oauth/exchange', { code });
 

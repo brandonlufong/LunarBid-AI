@@ -81,14 +81,14 @@ const supportTicketSchema = new mongoose.Schema({
   resolvedAt: Date
 });
 
-// Update timestamp on save
-supportTicketSchema.pre('save', function(next) {
+// Update timestamp on save. Mongoose 9 dropped callback-style (`next`) middleware,
+// so these hooks are synchronous and take no `next` argument.
+supportTicketSchema.pre('save', function () {
   this.updatedAt = Date.now();
-  next();
 });
 
 // Set priority based on plan
-supportTicketSchema.pre('save', function(next) {
+supportTicketSchema.pre('save', function () {
   if (this.isNew) {
     // Pro and Agency get higher priority
     if (this.subscriptionPlan === 'agency') {
@@ -97,7 +97,6 @@ supportTicketSchema.pre('save', function(next) {
       this.priority = 'high';
     }
   }
-  next();
 });
 
 const SupportTicket = mongoose.model('SupportTicket', supportTicketSchema);

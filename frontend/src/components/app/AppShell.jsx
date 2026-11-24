@@ -6,6 +6,7 @@ import {
   Menu as MenuIcon, X, LogOut, Moon, Sun, Languages, ChevronsUpDown, Check,
 } from 'lucide-react';
 import { Logo } from './Logo';
+import BetaBanner from './BetaBanner';
 import { Avatar, Badge, Button, IconButton, Menu, UsageMeter, cn } from '../UI';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -195,7 +196,7 @@ export default function AppShell({ active, onNavigate, subscription, children })
       <Drawer open={drawer} onClose={() => setDrawer(false)}>{sidebarBody}</Drawer>
 
       <main id="main" tabIndex={-1} className="outline-none lg:pl-64">
-        <div className="mx-auto w-full max-w-[1120px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10">{children}</div>
+        <div className="mx-auto w-full max-w-[1120px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10"><BetaBanner />{children}</div>
       </main>
     </div>
   );

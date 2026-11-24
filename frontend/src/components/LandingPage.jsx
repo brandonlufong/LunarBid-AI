@@ -6,7 +6,7 @@ import {
   ArrowRight, BarChart3, Check, ClipboardPaste, FileDown, Files, Languages, Minus, PenLine, ScanSearch, Send, ShieldCheck,
   SlidersHorizontal, Sparkles, UserRoundCheck, Users,
 } from 'lucide-react';
-import { getPlans } from '../services/api';
+import { getPlans, getMeta } from '../services/api';
 import { useLanguage } from '../locales/LanguageContext.jsx';
 import { Logo } from './app/Logo';
 import { AuthControls } from './Auth/AuthShell';
@@ -45,6 +45,7 @@ function Section({ id, eyebrow, title, subtitle, children, className }) {
 export default function LandingPage() {
   const { t } = useLanguage();
   const [plans, setPlans] = useState(PUBLIC_PLANS);
+  const [betaMode, setBetaMode] = useState(false);
   const pageRef = useRef(null);
   const visualRef = useRef(null);
   const scrolled = useScrolled();
@@ -55,6 +56,7 @@ export default function LandingPage() {
     getPlans()
       .then((r) => setPlans(r.data.plans?.length ? r.data.plans : PUBLIC_PLANS))
       .catch(() => setPlans(PUBLIC_PLANS));
+    getMeta().then((r) => setBetaMode(!!r.data?.betaMode)).catch(() => {});
   }, []);
 
   const nav = [['how', t('site.nav.how')], ['features', t('site.nav.features')], ['pricing', t('site.nav.pricing')], ['faq', t('site.nav.faq')]];
@@ -82,7 +84,10 @@ export default function LandingPage() {
         <section className="relative overflow-hidden border-b border-line bg-page px-5 pb-16 pt-14 sm:px-8 sm:pb-24 sm:pt-20">
           <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1fr_1.15fr]">
             <div>
-              <div className="hero-in" style={{ '--i': 0 }}><Badge tone="accent">{t('site.hero.eyebrow')}</Badge></div>
+              <div className="hero-in flex flex-wrap items-center gap-2" style={{ '--i': 0 }}>
+                <Badge tone="accent">{t('site.hero.eyebrow')}</Badge>
+                {betaMode && <Badge tone="neutral">{t('beta.title')}</Badge>}
+              </div>
               <h1 style={{ '--i': 1 }} className="hero-in mt-5 font-document text-[2.625rem] font-medium leading-[1.08] tracking-tight text-fg sm:text-[3.5rem]">{t('site.hero.title')}</h1>
               <p style={{ '--i': 2 }} className="hero-in mt-5 max-w-xl text-body-lg text-fg-2">{t('site.hero.body')}</p>
               <div style={{ '--i': 3 }} className="hero-in mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">

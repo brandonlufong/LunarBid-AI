@@ -1,5 +1,11 @@
 // English translations
 export const en = {
+  "beta": {
+    "title": "Free beta",
+    "body": "You're testing LunarBid's core features. Usage limits apply and no card is needed — more plans come later, and your feedback shapes them.",
+    "feedback": "Share feedback",
+    "dismiss": "Dismiss"
+  },
   "billing": {
     "title": "Plan & billing",
     "subtitle": "Your plan, what you've used, and your options.",

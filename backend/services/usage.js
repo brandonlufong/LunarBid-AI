@@ -9,6 +9,7 @@
 // falls back to a template), release() gives the reservation back.
 // ============================================================================
 const User = require('../models/User');
+const beta = require('../config/beta');
 
 const COUNTERS = {
   proposal: ['usage.proposalsToday', 'usage.proposalsThisMonth', 'usage.totalProposals'],
@@ -39,7 +40,8 @@ async function reserve(user, kind) {
   if (user.isModified('usage')) await persistRollover(user, kind);
   if (!check.allowed) return check;
 
-  const limits = user.getPlanLimits();
+  // Beta mode tightens proposal caps (never raises them) so AI cost stays controlled.
+  const limits = kind === 'proposal' ? beta.applyBetaLimits(user.getPlanLimits()) : user.getPlanLimits();
   const conditions = { _id: user._id };
   if (kind === 'proposal') {
     if (limits.dailyProposals != null) conditions['usage.proposalsToday'] = { $lt: limits.dailyProposals };

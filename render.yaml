@@ -19,6 +19,26 @@ services:
         value: "20"
       - key: TRUST_PROXY
         value: "1"
+      # --- Free-beta controls (non-secret; server-enforced in config/beta.js) ---
+      # Beta mode on, online payments OFF. Flip BILLING_ENABLED to "true" only when billing is live.
+      - key: BETA_MODE
+        value: "true"
+      - key: BILLING_ENABLED
+        value: "false"
+      - key: AI_GENERATION_ENABLED
+        value: "true"        # emergency kill switch: set "false" to pause all AI generation
+      # Protective per-user caps + global AI spend ceilings (USD). Safe defaults; tune as needed.
+      - key: BETA_DAILY_PROPOSALS
+        value: "3"
+      - key: BETA_MONTHLY_PROPOSALS
+        value: "15"
+      - key: AI_DAILY_SPEND_CEILING_USD
+        value: "5"
+      - key: AI_MONTHLY_SPEND_CEILING_USD
+        value: "50"
+      # Keep registration OPEN only once production email (Resend) is verified working; else set "false".
+      - key: REGISTRATION_ENABLED
+        value: "true"
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
@@ -46,6 +66,9 @@ services:
       - key: SMTP_PASSWORD
         sync: false
       - key: EMAIL_FROM
+        sync: false
+      # Primary email transport (Resend HTTPS API). Enter the key in the Render dashboard.
+      - key: RESEND_API_KEY
         sync: false
       - key: S3_BUCKET
         sync: false

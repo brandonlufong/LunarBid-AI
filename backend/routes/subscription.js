@@ -12,6 +12,7 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { getPublicPlans, getStripePriceId, isPurchasable, PLANS } = require('../config/plans');
 const { effectivePlan, isPaymentIssue, normalizeStatus } = require('../billing/access');
+const beta = require('../config/beta');
 const { stripe } = require('../billing/stripe');
 const log = require('../utils/logger');
 
@@ -86,6 +87,10 @@ async function portalUrl(customerId) {
 // ===============================
 async function createCheckout(req, res, next) {
   try {
+    // Beta: payment collection is off regardless of Stripe configuration.
+    if (!beta.BILLING_ENABLED) {
+      return res.status(403).json({ message: "Online payments aren't available yet.", comingSoon: true });
+    }
     const { plan } = req.body || {};
     if (!PLANS[plan] || plan === 'free') {
       return res.status(400).json({ message: 'Choose a paid plan.' });
