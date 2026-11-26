@@ -25,7 +25,7 @@ export const fr = {
     "billingInterval": "Période de facturation",
     "forever": "pour toujours",
     "taglines": {
-      "free": "Essayez LunarBid sur de vraies offres : 10 propositions par mois.",
+      "free": "Essayez LunarBid sur de vraies offres : 15 propositions par mois.",
       "starter": "Pour les freelances qui postulent chaque semaine.",
       "pro": "Pour les professionnels qui postulent chaque jour.",
       "agency": "Pour les équipes. En développement."
@@ -475,12 +475,12 @@ export const fr = {
       "comingSoon": "Bientôt disponible",
       "features": {
         "free": [
-          "5 propositions par jour",
+          "15 propositions par mois",
           "Modèles de base",
           "Support par e-mail"
         ],
         "starter": [
-          "50 propositions par mois",
+          "150 propositions par mois",
           "Enregistrer les profils clients",
           "Tous les tons et styles",
           "Support standard"
@@ -902,13 +902,13 @@ export const fr = {
       "cancelSuccess": "Abonnement annulé. Vous pouvez continuer à utiliser votre plan actuel jusqu'à la fin de la période de facturation.",
       "features": {
         "free": [
-          "5 propositions par jour",
+          "15 propositions par mois",
           "Ton professionnel uniquement",
           "Modèles de base",
           "Support par e-mail"
         ],
         "starter": [
-          "50 propositions par mois",
+          "150 propositions par mois",
           "Tous les tons et styles",
           "Enregistrer les profils clients (10)",
           "Support standard"
@@ -1400,7 +1400,7 @@ export const fr = {
       "body": "Collez une offre. LunarBid identifie les besoins du client et rédige une proposition dans votre style, à partir de l'expérience que vous avez réellement indiquée. Peaufinez-la et envoyez-la.",
       "cta": "Commencer gratuitement",
       "secondary": "Voir le fonctionnement",
-      "note": "Offre gratuite avec 10 propositions par mois. Aucune carte requise."
+      "note": "Offre gratuite avec 15 propositions par mois. Aucune carte requise."
     },
     "preview": {
       "jobTitle": "Tableau de bord analytique React",
