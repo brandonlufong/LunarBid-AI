@@ -1,6 +1,7 @@
 // Public plan data (same shape as GET /api/subscription/plans), used by the landing page
 // when the API is unreachable, so pricing is always shown. Must match backend/config/plans.js:
 // backend test "frontend fallback plans match the backend" fails if they drift.
+// Regenerate: node -e "require(.../config/plans)" (see audit notes) — do not hand-edit.
 export const PUBLIC_PLANS = [
   {
     "id": "free",
@@ -11,10 +12,11 @@ export const PUBLIC_PLANS = [
     "popular": false,
     "purchasable": false,
     "comingSoon": false,
+    "annual": null,
     "limits": {
       "dailyAnalyses": 5,
       "dailyProposals": null,
-      "monthlyProposals": 10,
+      "monthlyProposals": 15,
       "clientProfiles": 0,
       "teamMembers": 1,
       "storage": 104857600,
@@ -41,10 +43,14 @@ export const PUBLIC_PLANS = [
     "popular": false,
     "purchasable": true,
     "comingSoon": false,
+    "annual": {
+      "price": 120,
+      "interval": "year"
+    },
     "limits": {
       "dailyAnalyses": 40,
       "dailyProposals": null,
-      "monthlyProposals": 50,
+      "monthlyProposals": 150,
       "clientProfiles": 10,
       "teamMembers": 1,
       "storage": 524288000,
@@ -71,6 +77,10 @@ export const PUBLIC_PLANS = [
     "popular": true,
     "purchasable": true,
     "comingSoon": false,
+    "annual": {
+      "price": 190,
+      "interval": "year"
+    },
     "limits": {
       "dailyAnalyses": 150,
       "dailyProposals": 100,
@@ -102,10 +112,16 @@ export const PUBLIC_PLANS = [
     "popular": false,
     "purchasable": false,
     "comingSoon": true,
+    "annual": {
+      "price": 490,
+      "interval": "year"
+    },
     "limits": {
       "dailyAnalyses": 300,
       "dailyProposals": null,
       "monthlyProposals": null,
+      "workspaceDailyPerSeat": 100,
+      "workspaceMonthly": 2500,
       "clientProfiles": null,
       "teamMembers": 5,
       "storage": 10737418240,

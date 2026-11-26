@@ -55,8 +55,16 @@ services:
         sync: false
       - key: STRIPE_PRO_PRICE_ID
         sync: false
+      # Optional annual price IDs (enable annual billing when set; monthly works without them)
+      - key: STRIPE_STARTER_ANNUAL_PRICE_ID
+        sync: false
+      - key: STRIPE_PRO_ANNUAL_PRICE_ID
+        sync: false
       - key: GROQ_API_KEY
         sync: false
+      # Groq GPT-OSS slot (primary). Non-secret model id; gpt-oss-20b is the faster/cheaper option.
+      - key: GROQ_OSS_MODEL
+        value: openai/gpt-oss-120b
       - key: OPENAI_API_KEY
         sync: false
       - key: SMTP_HOST

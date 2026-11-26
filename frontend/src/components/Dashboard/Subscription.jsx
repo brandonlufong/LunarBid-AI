@@ -23,6 +23,7 @@ export default function Subscription({ onSubscriptionChange }) {
   const [busy, setBusy] = useState('');
   const [activating, setActivating] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [interval, setBillingInterval] = useState('month'); // 'month' | 'year'
 
   const load = async () => {
     try {
@@ -63,7 +64,7 @@ export default function Subscription({ onSubscriptionChange }) {
   const startCheckout = async (planId) => {
     setBusy(planId);
     try {
-      const res = await createCheckout(planId);
+      const res = await createCheckout(planId, interval);
       window.location.assign(res.data.url);
     } catch (err) {
       const d = err.response?.data || {};
@@ -152,7 +153,17 @@ export default function Subscription({ onSubscriptionChange }) {
       </Card>
 
       {/* Plans */}
-      <h2 className="mb-4 mt-10 text-h2 font-semibold text-fg">{t('billing.plansTitle')}</h2>
+      <div className="mb-4 mt-10 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-h2 font-semibold text-fg">{t('billing.plansTitle')}</h2>
+        {Array.isArray(sorted) && sorted.some((p) => p.annual) && (
+          <div className="inline-flex rounded-lg border border-line bg-subtle p-1 text-small" role="group" aria-label={t('billing.billingInterval')}>
+            <button type="button" onClick={() => setBillingInterval('month')} aria-pressed={interval === 'month'}
+              className={cn('rounded-md px-3 py-1 transition-colors', interval === 'month' ? 'bg-surface font-medium text-fg shadow-sm' : 'text-muted')}>{t('billing.monthly')}</button>
+            <button type="button" onClick={() => setBillingInterval('year')} aria-pressed={interval === 'year'}
+              className={cn('rounded-md px-3 py-1 transition-colors', interval === 'year' ? 'bg-surface font-medium text-fg shadow-sm' : 'text-muted')}>{t('billing.annual')}</button>
+          </div>
+        )}
+      </div>
       {plans === null ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{ORDER.map((p) => <Skeleton key={p} className="h-80" />)}</div>
       ) : (
@@ -160,6 +171,8 @@ export default function Subscription({ onSubscriptionChange }) {
           {sorted.map((plan) => {
             const isCurrent = plan.id === current;
             const higher = ORDER.indexOf(plan.id) > ORDER.indexOf(current);
+            const annual = interval === 'year' && plan.annual;
+            const amount = annual ? plan.annual.price : plan.price;
             return (
               <Card key={plan.id} padded={false} aria-labelledby={`plan-${plan.id}`}
                 className={cn('flex flex-col p-5', isCurrent && 'ring-2 ring-accent')}>
@@ -169,8 +182,8 @@ export default function Subscription({ onSubscriptionChange }) {
                 </div>
                 <p className="mt-1 min-h-10 text-small text-muted">{t(`billing.taglines.${plan.id}`)}</p>
                 <p className="mt-4 flex items-baseline gap-1">
-                  <span className="text-display font-semibold tracking-tight text-fg">${plan.price}</span>
-                  <span className="text-small text-muted">{plan.price ? t('billing.month') : t('billing.forever')}</span>
+                  <span className="text-display font-semibold tracking-tight text-fg">${amount}</span>
+                  <span className="text-small text-muted">{amount ? t(annual ? 'billing.year' : 'billing.month') : t('billing.forever')}</span>
                 </p>
                 {plan.comingSoon ? (
                   <p className="mt-5 flex-1 text-small text-fg-2">{t('billing.agencyNote')}</p>

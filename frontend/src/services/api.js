@@ -74,7 +74,8 @@ export const getPublicProposal = (token) => api.get(`/proposals/public/${token}`
 export const getSubscription = () => api.get('/subscription');
 // Billing: both return { url } to redirect to (Stripe Checkout or the Customer Portal).
 export const getPlans = () => api.get('/subscription/plans');
-export const createCheckout = (plan) => api.post('/subscription/checkout', { plan });
+export const createCheckout = (plan, interval = 'month') =>
+  api.post('/subscription/checkout', interval === 'year' ? { plan, interval } : { plan });
 export const openBillingPortal = () => api.post('/subscription/portal');
 export const upgradePlan = createCheckout; // kept for older imports
 export const cancelSubscription = () => api.post('/subscription/cancel');
