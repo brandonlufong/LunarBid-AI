@@ -183,13 +183,13 @@ test('history is paginated with a cursor', async () => {
 // ================= BIL-10: atomic quotas =================
 test('simultaneous requests cannot exceed the plan limit', async () => {
   const { reserve } = require('../services/usage');
-  const u = makeUser(); // free plan: 10 proposals per month
+  const u = makeUser(); // free plan: 15 proposals per month
   u.usage.lastResetDate = new Date();
   u.usage.monthlyResetDate = new Date();
-  const results = await Promise.all(Array.from({ length: 12 }, () => reserve(u, 'proposal')));
-  assert.equal(results.filter((r) => r.allowed).length, 10);
+  const results = await Promise.all(Array.from({ length: 17 }, () => reserve(u, 'proposal')));
+  assert.equal(results.filter((r) => r.allowed).length, 15);
   assert.equal(results.filter((r) => !r.allowed)[0].reason, 'monthly_limit');
-  assert.equal(u.usage.proposalsThisMonth, 10);
+  assert.equal(u.usage.proposalsThisMonth, 15);
 });
 
 test('a released reservation gives the quota back', async () => {
@@ -257,7 +257,7 @@ test('limit messages only suggest upgrading when a higher plan exists', async ()
   assert.equal(body.canUpgrade, false);
   assert.match(body.message, /fair-use/);
   const free = makeUser();
-  free.usage.proposalsThisMonth = 10; free.usage.lastResetDate = new Date(); free.usage.monthlyResetDate = new Date();
+  free.usage.proposalsThisMonth = 15; free.usage.lastResetDate = new Date(); free.usage.monthlyResetDate = new Date();
   const res2 = await call('POST', '/api/proposals/generate', { jobTitle: 'Logo', jobDescription: 'Design a logo for our bakery brand please' }, bearer(signSession(free)));
   const body2 = await res2.json();
   assert.equal(body2.canUpgrade, true);

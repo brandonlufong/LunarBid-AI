@@ -60,6 +60,15 @@ const anthropic = async ({ key, model, prompt, maxTokens, signal }) => {
 // Default models are the ones LunarBid was built with. Providers retire models over
 // time: override with the *_MODEL variables and confirm with `npm run ai:check`.
 const PROVIDERS = {
+  // Groq GPT-OSS: same Groq account/key, current GPT-OSS model. Added as a separate slot so the
+  // original Groq/Llama entry stays intact (it works again automatically if Groq restores Llama).
+  groq_oss: {
+    name: 'Groq GPT-OSS',
+    keyEnv: 'GROQ_API_KEY',
+    modelEnv: 'GROQ_OSS_MODEL',
+    defaultModel: 'openai/gpt-oss-120b',
+    call: openAICompatible('https://api.groq.com/openai/v1/chat/completions'),
+  },
   groq: {
     name: 'Groq',
     keyEnv: 'GROQ_API_KEY',
@@ -99,7 +108,7 @@ const PROVIDERS = {
     call: anthropic,
   },
 };
-const DEFAULT_ORDER = ['groq', 'together', 'openrouter', 'openai', 'anthropic'];
+const DEFAULT_ORDER = ['groq_oss', 'groq', 'together', 'openrouter', 'openai', 'anthropic'];
 
 const placeholder = (v) => !v || /your_|placeholder/i.test(v);
 
@@ -137,6 +146,18 @@ function recordFailure(id) {
     log.warn({ provider: id, coolDownMs: COOL_DOWN_MS }, 'AI provider paused after repeated failures');
   }
   health.set(id, h);
+}
+// A permanent error (the configured model is gone / not accessible) won't fix itself on retry, so
+// pause the provider immediately instead of burning one failed attempt per request.
+function recordPermanentFailure(id) {
+  health.set(id, { failures: 0, openUntil: Date.now() + COOL_DOWN_MS });
+  log.warn({ provider: id, coolDownMs: COOL_DOWN_MS }, 'AI provider paused immediately (model unavailable)');
+}
+// True when the HTTP error means "this model is not usable", e.g. a retired or inaccessible model.
+function isModelUnavailable(err) {
+  const status = err.response?.status;
+  const msg = err.response?.data?.error?.message || '';
+  return status === 404 || (status === 400 && /model|not\s*found|does not exist|decommission|deprecat/i.test(msg));
 }
 
 class AIUnavailableError extends Error {
@@ -183,7 +204,8 @@ async function generateProposal(prompt, isPriority = false, opts = {}) {
       const ms = Date.now() - started;
       const reason = controller.signal.aborted ? 'timeout' : err.response?.status ? `http ${err.response.status}` : err.message;
       attempts.push({ provider: p.id, reason, ms });
-      recordFailure(p.id);
+      if (!controller.signal.aborted && isModelUnavailable(err)) recordPermanentFailure(p.id);
+      else recordFailure(p.id);
       log.warn({ provider: p.id, model: p.model, ms, reason }, 'AI provider failed, trying next');
     } finally {
       clearTimeout(timer);

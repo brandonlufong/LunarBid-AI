@@ -134,8 +134,9 @@ test('the template fallback uses only provided details', () => {
 
 // ================= AI-4: fallback, deadline, circuit breaker =================
 test('falls back to the next provider when one fails', async () => {
-  aiHandler = async (url) => {
-    if (url.includes('groq')) { const e = new Error('boom'); e.response = { status: 500 }; throw e; }
+  // Fail only the first provider (Groq GPT-OSS); the next provider answers.
+  aiHandler = async (url, body) => {
+    if (body?.model?.includes('gpt-oss')) { const e = new Error('boom'); e.response = { status: 500 }; throw e; }
     return aiText('A perfectly good proposal text that is long enough to pass the check.');
   };
   const text = await ai.generateProposal('prompt');

@@ -24,7 +24,7 @@ const PLANS = {
       // keeps Free below paid Starter (50/month). See LAUNCH_REPORT.md, pricing assessment.
       dailyAnalyses: 5,               // AI job-post analyses per day
       dailyProposals: null,
-      monthlyProposals: 10,
+      monthlyProposals: 15,           // free hook; loosened from 10 (additive, no user impact)
       clientProfiles: 0,
       teamMembers: 1,
       storage: 100 * 1024 * 1024,     // 100 MB
@@ -50,11 +50,13 @@ const PLANS = {
     interval: 'month',
     tagline: 'For freelancers getting serious',
     stripePriceEnv: 'STRIPE_STARTER_PRICE_ID',
+    // Annual billing (optional): set STRIPE_STARTER_ANNUAL_PRICE_ID to enable. ~2 months free.
+    annual: { price: 120, stripePriceEnv: 'STRIPE_STARTER_ANNUAL_PRICE_ID' },
     purchasable: true,
     limits: {
       dailyAnalyses: 40,
       dailyProposals: null,
-      monthlyProposals: 50,
+      monthlyProposals: 150,          // loosened from 50 for volume-competitiveness (additive)
       clientProfiles: 10,
       teamMembers: 1,
       storage: 500 * 1024 * 1024,     // 500 MB
@@ -81,6 +83,7 @@ const PLANS = {
     tagline: 'For growing freelancers & pros',
     popular: true,
     stripePriceEnv: 'STRIPE_PRO_PRICE_ID',
+    annual: { price: 190, stripePriceEnv: 'STRIPE_PRO_ANNUAL_PRICE_ID' },
     purchasable: true,
     limits: {
       dailyAnalyses: 150,
@@ -114,6 +117,7 @@ const PLANS = {
     interval: 'month',
     tagline: 'For agencies & teams',
     stripePriceEnv: 'STRIPE_AGENCY_PRICE_ID',
+    annual: { price: 490, stripePriceEnv: 'STRIPE_AGENCY_ANNUAL_PRICE_ID' },
     // Not for sale until team collaboration, white-label and API access are built.
     // Flip to true only when those features ship; checkout refuses non-purchasable plans.
     purchasable: false,
@@ -122,6 +126,10 @@ const PLANS = {
       dailyAnalyses: 300,
       dailyProposals: null,
       monthlyProposals: null,          // unlimited
+      // Workspace fair-use ceiling (NOT enforced yet — read only when team workspaces ship).
+      // Bounds a 5-seat team: per-seat daily + workspace monthly. Inert while Agency is not purchasable.
+      workspaceDailyPerSeat: 100,
+      workspaceMonthly: 2500,
       clientProfiles: null,            // unlimited
       teamMembers: 5,
       storage: 10 * 1024 * 1024 * 1024, // 10 GB
@@ -148,17 +156,23 @@ const getPlan = (planId) => PLANS[planId] || PLANS.free;
 const getLimits = (planId) => getPlan(planId).limits;
 const hasFeature = (planId, feature) => !!getPlan(planId).features[feature];
 
-// Map planId -> resolved Stripe price id (from env)
-const getStripePriceId = (planId) => {
-  const env = getPlan(planId).stripePriceEnv;
+// Map planId + interval -> resolved Stripe price id (from env). Defaults to 'month', so every
+// existing caller is unchanged; 'year' resolves the optional annual price when it is configured.
+const getStripePriceId = (planId, interval = 'month') => {
+  const plan = getPlan(planId);
+  const env = interval === 'year' ? plan.annual?.stripePriceEnv : plan.stripePriceEnv;
   return env ? process.env[env] : null;
 };
 
-// Stripe price id -> planId (used by the webhook to decide which plan a subscription grants)
+// Stripe price id -> planId (used by the webhook to decide which plan a subscription grants).
+// Matches BOTH the monthly and the annual price id for each plan, so annual subscriptions resolve.
 const getPlanByPriceId = (priceId) =>
-  PAID_PLANS.find((planId) => priceId && getStripePriceId(planId) === priceId) || null;
+  PAID_PLANS.find(
+    (planId) => priceId && (getStripePriceId(planId) === priceId || getStripePriceId(planId, 'year') === priceId)
+  ) || null;
 
-const isPurchasable = (planId) => !!PLANS[planId]?.purchasable && !!getStripePriceId(planId);
+const isPurchasable = (planId, interval = 'month') =>
+  !!PLANS[planId]?.purchasable && !!getStripePriceId(planId, interval);
 
 // Public-safe representation for the frontend / landing page
 const getPublicPlans = () =>
@@ -173,6 +187,7 @@ const getPublicPlans = () =>
       popular: !!p.popular,
       purchasable: !!p.purchasable,
       comingSoon: !!p.comingSoon,
+      annual: p.annual ? { price: p.annual.price, interval: 'year' } : null,
       limits: p.limits,
       features: p.features,
     };

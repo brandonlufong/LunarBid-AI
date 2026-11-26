@@ -19,6 +19,10 @@ export const en = {
     "resetNote": "Monthly allowances reset on the 1st; daily limits at midnight (server time).",
     "plansTitle": "Plans",
     "month": "/ month",
+    "year": "/ year",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "billingInterval": "Billing interval",
     "forever": "forever",
     "taglines": {
       "free": "Try LunarBid on real bids: 10 proposals a month.",

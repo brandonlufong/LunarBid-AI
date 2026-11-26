@@ -1,9 +1,9 @@
 // frontend/src/config/plans.js
 // ----------------------------------------------------------------------------
-// Frontend mirror of backend/config/plans.js (public fields only).
-// Single source of truth for the UI's plan numbers/limits/features so pricing
-// cards, gating and usage meters stay in sync. Can also be hydrated at runtime
-// from GET /api/subscription/plans (see fetchPlans) if you prefer server-driven.
+// NOTE: The live UI reads plans from GET /api/subscription/plans, falling back to
+// frontend/src/config/publicPlans.js (which a backend test keeps in sync with
+// backend/config/plans.js). This file is kept aligned for reference only.
+// Numbers below mirror the backend; publicPlans.js is the enforced mirror.
 // ----------------------------------------------------------------------------
 
 export const PLANS = {
@@ -14,7 +14,7 @@ export const PLANS = {
     interval: 'forever',
     tagline: 'Perfect for getting started',
     popular: false,
-    limits: { dailyProposals: 5, monthlyProposals: null, clientProfiles: 0, teamMembers: 1 },
+    limits: { dailyProposals: null, monthlyProposals: 15, clientProfiles: 0, teamMembers: 1 },
     features: {
       clientProfiles: false, analytics: false, customBranding: false, priorityAI: false,
       teamCollaboration: false, whiteLabel: false, apiAccess: false, prioritySupport: false, export: true,
@@ -27,7 +27,7 @@ export const PLANS = {
     interval: 'month',
     tagline: 'For freelancers getting serious',
     popular: false,
-    limits: { dailyProposals: null, monthlyProposals: 50, clientProfiles: 10, teamMembers: 1 },
+    limits: { dailyProposals: null, monthlyProposals: 150, clientProfiles: 10, teamMembers: 1 },
     features: {
       clientProfiles: true, analytics: false, customBranding: false, priorityAI: false,
       teamCollaboration: false, whiteLabel: false, apiAccess: false, prioritySupport: false, export: true,

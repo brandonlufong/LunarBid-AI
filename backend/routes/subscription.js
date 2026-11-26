@@ -91,11 +91,12 @@ async function createCheckout(req, res, next) {
     if (!beta.BILLING_ENABLED) {
       return res.status(403).json({ message: "Online payments aren't available yet.", comingSoon: true });
     }
-    const { plan } = req.body || {};
+    const { plan, interval: rawInterval } = req.body || {};
+    const interval = rawInterval === 'year' ? 'year' : 'month'; // default monthly; unknown values fall back
     if (!PLANS[plan] || plan === 'free') {
       return res.status(400).json({ message: 'Choose a paid plan.' });
     }
-    if (!isPurchasable(plan)) {
+    if (!isPurchasable(plan, interval)) {
       return res.status(400).json({ message: 'This plan is not available yet.', comingSoon: true });
     }
 
@@ -110,10 +111,10 @@ async function createCheckout(req, res, next) {
       mode: 'subscription',
       customer: customerId,
       client_reference_id: user._id.toString(),
-      line_items: [{ price: getStripePriceId(plan), quantity: 1 }],
+      line_items: [{ price: getStripePriceId(plan, interval), quantity: 1 }],
       allow_promotion_codes: true,
-      subscription_data: { metadata: { userId: user._id.toString(), plan } },
-      metadata: { userId: user._id.toString(), plan },
+      subscription_data: { metadata: { userId: user._id.toString(), plan, interval } },
+      metadata: { userId: user._id.toString(), plan, interval },
       success_url: `${frontendUrl()}/dashboard?tab=subscription&checkout=success`,
       cancel_url: `${frontendUrl()}/dashboard?tab=subscription&checkout=cancelled`,
     });

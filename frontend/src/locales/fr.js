@@ -19,6 +19,10 @@ export const fr = {
     "resetNote": "Les quotas mensuels sont réinitialisés le 1er ; les limites quotidiennes à minuit (heure du serveur).",
     "plansTitle": "Offres",
     "month": "/ mois",
+    "year": "/ an",
+    "monthly": "Mensuel",
+    "annual": "Annuel",
+    "billingInterval": "Période de facturation",
     "forever": "pour toujours",
     "taglines": {
       "free": "Essayez LunarBid sur de vraies offres : 10 propositions par mois.",
