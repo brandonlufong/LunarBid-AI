@@ -25,7 +25,7 @@ export const en = {
     "billingInterval": "Billing interval",
     "forever": "forever",
     "taglines": {
-      "free": "Try LunarBid on real bids: 10 proposals a month.",
+      "free": "Try LunarBid on real bids: 15 proposals a month.",
       "starter": "For freelancers bidding every week.",
       "pro": "For professionals who bid every day.",
       "agency": "For teams. In development."
@@ -475,12 +475,12 @@ export const en = {
       "comingSoon": "Coming Soon",
       "features": {
         "free": [
-          "5 proposals per day",
+          "15 proposals per month",
           "Basic templates",
           "Email support"
         ],
         "starter": [
-          "50 proposals per month",
+          "150 proposals per month",
           "Save client profiles",
           "All tones & styles",
           "Standard support"
@@ -902,13 +902,13 @@ export const en = {
       "cancelSuccess": "Subscription cancelled. You can keep using your current plan until the end of the billing period.",
       "features": {
         "free": [
-          "5 proposals per day",
+          "15 proposals per month",
           "Professional tone only",
           "Basic templates",
           "Email support"
         ],
         "starter": [
-          "50 proposals per month",
+          "150 proposals per month",
           "All tones & styles",
           "Save client profiles (10)",
           "Standard support"
@@ -1400,7 +1400,7 @@ export const en = {
       "body": "Paste a job post. LunarBid works out what the client needs and drafts a proposal in your voice, from the experience you've actually listed. Refine it and send.",
       "cta": "Start free",
       "secondary": "See how it works",
-      "note": "Free plan with 10 proposals a month. No card needed."
+      "note": "Free plan with 15 proposals a month. No card needed."
     },
     "preview": {
       "jobTitle": "React analytics dashboard",
